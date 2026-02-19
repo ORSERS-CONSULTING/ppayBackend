@@ -2,15 +2,12 @@
   "name": "ppaybackend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "main": "bootstrap.js",
   "type": "commonjs",
+  "scripts": {
+    "start": "node bootstrap.js",
+    "dev": "nodemon bootstrap.js"
+  },
   "dependencies": {
     "axios": "^1.13.5",
     "bcryptjs": "^3.0.3",
