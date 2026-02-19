@@ -26,7 +26,6 @@ async function loadConfig() {
       "ORDS_CLIENT_ID",
       "ORDS_CLIENT_ID_OCID"
     ),
-
     ORDS_CLIENT_SECRET: await required(
       "ORDS_CLIENT_SECRET",
       "ORDS_CLIENT_SECRET_OCID"
