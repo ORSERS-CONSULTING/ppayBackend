@@ -4,10 +4,7 @@ async function getOrdsAccessToken() {
   if (cachedToken && tokenExpiry && Date.now() < tokenExpiry) {
     return cachedToken;
   }
-  // console.log(
-  //   "Requesting new ORDS access token...",
-  //   process.env.ORDS_TOKEN_URL,
-  // );
+
   const response = await fetch(process.env.ORDS_TOKEN_URL, {
     method: "POST",
     headers: {
