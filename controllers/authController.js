@@ -179,11 +179,8 @@ async function deleteAccount(req, res) {
   try {
     const user_id = req.user.id; // comes from JWT via authMiddleware
     console.log("Deleting account for user_id:", user_id);
-    await callOrds("/deleteAccount", {
+    await callOrds(`/deleteAccount?user_id=${user_id}`, {
       method: "DELETE",
-      body: JSON.stringify({
-        user_id,
-      }),
     });
 
     return res.status(204).send(); // No content (standard)
