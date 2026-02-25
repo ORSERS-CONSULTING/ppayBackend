@@ -12,7 +12,7 @@ const {
 
 router.post("/login", login);
 router.post("/register", register);
-router.delete("/deleteAccount", authUser, deleteAccount);
+router.post("/deleteAccount", authUser, deleteAccount);
 router.post("/refresh", refresh);
 router.post("/logout", logout);
 
