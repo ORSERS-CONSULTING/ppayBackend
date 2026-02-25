@@ -7,7 +7,7 @@ const {
   register,
   refresh,
   logout,
-    deleteAccount,
+  deleteAccount,
 } = require("../controllers/authController");
 
 router.post("/login", login);
