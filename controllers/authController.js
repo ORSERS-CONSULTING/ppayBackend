@@ -182,7 +182,7 @@ async function deleteAccount(req, res) {
     return res.status(204).send(); // No content (standard)
   } catch (error) {
     console.error("==== DELETE ACCOUNT ERROR ====");
-    console.error("Message:", error.message);
+    console.error("Message:", error);
 
     res.status(500).json({
       error: "Account deletion failed",
