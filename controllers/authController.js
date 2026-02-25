@@ -178,7 +178,7 @@ async function logout(req, res) {
 async function deleteAccount(req, res) {
   try {
     const user_id = req.user.id; // comes from JWT via authMiddleware
-
+    console.log("Deleting account for user_id:", user_id);
     await callOrds("/deleteAccount", {
       method: "DELETE",
       body: JSON.stringify({
@@ -187,10 +187,20 @@ async function deleteAccount(req, res) {
     });
 
     return res.status(204).send(); // No content (standard)
-
   } catch (error) {
-    console.error("deleteAccount error:", error.message);
-    res.status(500).json({ error: "Account deletion failed" });
+    console.error("==== DELETE ACCOUNT ERROR ====");
+    console.error("Message:", error.message);
+    console.error("Full error:", error);
+
+    if (error.response) {
+      console.error("Status:", error.response.status);
+      console.error("ORDS body:", error.response.data);
+    }
+
+    res.status(500).json({
+      error: "Account deletion failed",
+      details: error.response?.data || error.message,
+    });
   }
 }
 
