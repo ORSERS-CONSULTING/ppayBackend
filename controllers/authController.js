@@ -172,5 +172,26 @@ async function logout(req, res) {
     res.status(500).json({ error: "Logout failed" });
   }
 }
+/* ===========================
+   DELETE ACCOUNT (Protected)
+=========================== */
+async function deleteAccount(req, res) {
+  try {
+    const user_id = req.user.id; // comes from JWT via authMiddleware
 
-module.exports = { login, register, refresh, logout };
+    await callOrds("/deleteAccount", {
+      method: "DELETE",
+      body: JSON.stringify({
+        user_id,
+      }),
+    });
+
+    return res.status(204).send(); // No content (standard)
+
+  } catch (error) {
+    console.error("deleteAccount error:", error.message);
+    res.status(500).json({ error: "Account deletion failed" });
+  }
+}
+
+module.exports = { login, register, refresh, logout, deleteAccount };
