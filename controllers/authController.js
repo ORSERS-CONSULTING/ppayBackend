@@ -145,9 +145,7 @@ async function refresh(req, res) {
   }
 }
 
-/* ===========================
-   LOGOUT
-=========================== */
+
 async function logout(req, res) {
   try {
     const { refresh_token, device_id } = req.body;
@@ -172,9 +170,7 @@ async function logout(req, res) {
     res.status(500).json({ error: "Logout failed" });
   }
 }
-/* ===========================
-   DELETE ACCOUNT (Protected)
-=========================== */
+
 async function deleteAccount(req, res) {
   try {
     const user_id = req.user.id; // comes from JWT via authMiddleware
