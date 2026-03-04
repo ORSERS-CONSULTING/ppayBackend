@@ -4,7 +4,6 @@ const receiptController = require("../controllers/receiptController");
 const { authUser } = require("../middleware/authMiddleware");
 const multer = require("multer");
 const upload = multer({ storage: multer.memoryStorage() });
-// Protect all receipt routes
 router.post("/receipts", authUser, receiptController.createReceipt);
 router.get("/receipts", authUser, receiptController.listReceipts);
 router.get("/receiptDetails", authUser, receiptController.getReceiptDetails);
