@@ -14,5 +14,5 @@ router.post(
   upload.single("logo"),
   receiptController.uploadLogo,
 );
-router.get("/getLogo", authUser, receiptController.getLogo);
+router.get("/getLogo", receiptController.getLogo);
 module.exports = router;

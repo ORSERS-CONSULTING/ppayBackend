@@ -148,7 +148,12 @@ async function uploadLogo(req, res) {
 }
 async function getLogo(req, res) {
   try {
-    const user_id = req.user?.id;
+    const user_id = req.user?.id || req.query.user_id;
+
+    if (!user_id) {
+      return res.status(400).json({ error: "Missing user id" });
+    }
+
     console.log("getLogo → user:", user_id);
 
     const token = await getOrdsAccessToken();
@@ -165,8 +170,6 @@ async function getLogo(req, res) {
 
     const contentType = response.headers.get("content-type") || "image/jpeg";
     const buffer = await response.arrayBuffer();
-
-    console.log("getLogo → success");
 
     res.setHeader("Content-Type", contentType);
     res.send(Buffer.from(buffer));
