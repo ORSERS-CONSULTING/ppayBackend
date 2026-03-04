@@ -1,5 +1,6 @@
 const { callOrds } = require("../services/ordsService");
-const { getOrdsAccessToken } = require("../utils/ordsAuth");
+const { getOrdsAccessToken } = require("../services/oauthService");
+
 async function createReceipt(req, res) {
   try {
     const user_id = req.user.id;
