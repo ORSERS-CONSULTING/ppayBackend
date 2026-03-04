@@ -113,12 +113,75 @@ async function getPublicReceipt(req, res) {
     res.status(500).json({ error: "Failed to fetch receipt" });
   }
 }
+async function uploadLogo(req, res) {
+  try {
+    const user_id = req.user.id;
 
+    if (!req.file) {
+      return res.status(400).json({ error: "No image uploaded" });
+    }
 
+    const mimeType = req.file.mimetype;
+    const buffer = req.file.buffer;
+
+    const queryString = new URLSearchParams({
+      user_id,
+    }).toString();
+
+    const result = await callOrds(
+      `/uploadLogo?${queryString}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": mimeType,
+        },
+        body: buffer,
+      }
+    );
+
+    res.json(result);
+
+  } catch (error) {
+    console.error("uploadLogo error:", error.message);
+    res.status(500).json({ error: "Failed to upload logo" });
+  }
+}
+async function getLogo(req, res) {
+  try {
+    const user_id = req.user.id;
+
+    const token = await getOrdsAccessToken();
+
+    const url = `${process.env.ORDS_BASE_URL}/getLogo?user_id=${user_id}`;
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).end();
+    }
+
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+
+    const buffer = await response.arrayBuffer();
+
+    res.setHeader("Content-Type", contentType);
+    res.send(Buffer.from(buffer));
+
+  } catch (error) {
+    console.error("getLogo error:", error.message);
+    res.status(500).json({ error: "Failed to fetch logo" });
+  }
+}
 module.exports = {
   createReceipt,
   listReceipts,
   getReceiptDetails,
   voidReceipt,
   getPublicReceipt,
+  uploadLogo,
+  getLogo,
 };

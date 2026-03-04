@@ -8,8 +8,7 @@ async function callOrds(endpoint, options = {}) {
     headers: {
       ...(options.headers || {}),
       Authorization: `Bearer ${token}`,
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
-    },
+...(options.headers ? {} : options.body ? { "Content-Type": "application/json" } : {}),    },
   });
 
   const buffer = await response.arrayBuffer();
