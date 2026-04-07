@@ -21,5 +21,4 @@ router.post("/logout", logout);
 router.post("/sendOtp", sendOtp);
 router.post("/verifyOtp", verifyOtp);
 router.post("/resetPassword", resetPassword);
-
 module.exports = router;
