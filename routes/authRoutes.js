@@ -8,6 +8,9 @@ const {
   refresh,
   logout,
   deleteAccount,
+  sendOtp,
+  verifyOtp,
+  resetPassword,
 } = require("../controllers/authController");
 
 router.post("/login", login);
