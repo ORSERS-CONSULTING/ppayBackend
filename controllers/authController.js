@@ -217,7 +217,13 @@ async function verifyOtp(req, res) {
   try {
     const { email, otp_code } = req.body;
 
+    console.log("🔐 [VERIFY OTP] Incoming request:", {
+      email,
+      otp_code,
+    });
+
     if (!email || !otp_code) {
+      console.warn("⚠️ [VERIFY OTP] Missing data", { email, otp_code });
       return res.status(400).json({ error: "Missing data" });
     }
 
@@ -226,15 +232,35 @@ async function verifyOtp(req, res) {
       body: JSON.stringify({ email, otp_code }),
     });
 
-    if (result?.verification_status !== "VERIFIED") {
+    console.log("📦 [VERIFY OTP] ORDS raw response:", JSON.stringify(result, null, 2));
+
+    const verificationStatus =
+      result?.verification_status ||
+      result?.items?.[0]?.verification_status;
+
+    console.log("🔎 [VERIFY OTP] Parsed status:", verificationStatus);
+
+    if (verificationStatus !== "VERIFIED") {
+      console.warn("❌ [VERIFY OTP] Invalid OTP", {
+        email,
+        otp_code,
+        verificationStatus,
+      });
+
       return res.status(400).json({
         error: "Invalid or expired OTP",
       });
     }
 
-    return res.json({ ok: true });
+    console.log("✅ [VERIFY OTP] Success", { email });
+
+    return res.json({ verification_status: "VERIFIED" });
   } catch (error) {
-    console.error("verifyOtp error:", error.message);
+    console.error("💥 [VERIFY OTP ERROR]", {
+      message: error.message,
+      stack: error.stack,
+    });
+
     res.status(500).json({ error: "OTP verification failed" });
   }
 }
