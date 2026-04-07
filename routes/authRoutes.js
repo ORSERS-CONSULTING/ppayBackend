@@ -15,5 +15,8 @@ router.post("/register", register);
 router.post("/deleteAccount", authUser, deleteAccount);
 router.post("/refresh", refresh);
 router.post("/logout", logout);
+router.post("/sendOtp", sendOtp);
+router.post("/verifyOtp", verifyOtp);
+router.post("/resetPassword", resetPassword);
 
 module.exports = router;

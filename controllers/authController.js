@@ -191,4 +191,74 @@ async function deleteAccount(req, res) {
   }
 }
 
-module.exports = { login, register, refresh, logout, deleteAccount };
+
+async function sendOtp(req, res) {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: "Email required" });
+    }
+
+    await callOrds("/sendOtp", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+
+    return res.json({
+      message: "If account exists, OTP sent",
+    });
+  } catch (error) {
+    console.error("sendOtp error:", error.message);
+    res.status(500).json({ error: "Failed to send OTP" });
+  }
+}
+async function verifyOtp(req, res) {
+  try {
+    const { email, otp_code } = req.body;
+
+    if (!email || !otp_code) {
+      return res.status(400).json({ error: "Missing data" });
+    }
+
+    const result = await callOrds("/verifyOtp", {
+      method: "POST",
+      body: JSON.stringify({ email, otp_code }),
+    });
+
+    if (result?.verification_status !== "VERIFIED") {
+      return res.status(400).json({
+        error: "Invalid or expired OTP",
+      });
+    }
+
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("verifyOtp error:", error.message);
+    res.status(500).json({ error: "OTP verification failed" });
+  }
+}
+async function resetPassword(req, res) {
+  try {
+    const { email, new_password } = req.body;
+
+    if (!email || !new_password) {
+      return res.status(400).json({ error: "Missing data" });
+    }
+
+    await callOrds("/resetPassword", {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        new_password,
+      }),
+    });
+
+    return res.json({ message: "Password updated" });
+  } catch (error) {
+    console.error("resetPassword error:", error.message);
+    res.status(500).json({ error: "Password reset failed" });
+  }
+}
+
+module.exports = { login, register, refresh, logout, deleteAccount, sendOtp, verifyOtp, resetPassword };
