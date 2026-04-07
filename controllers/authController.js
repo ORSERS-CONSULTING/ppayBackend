@@ -268,11 +268,17 @@ async function resetPassword(req, res) {
   try {
     const { email, new_password } = req.body;
 
+    console.log("🔐 [RESET PASSWORD] Incoming:", {
+      email,
+      new_password,
+    });
+
     if (!email || !new_password) {
+      console.warn("⚠️ Missing data", { email, new_password });
       return res.status(400).json({ error: "Missing data" });
     }
 
-    await callOrds("/resetPassword", {
+    const result = await callOrds("/resetPassword", {
       method: "POST",
       body: JSON.stringify({
         email,
@@ -280,9 +286,35 @@ async function resetPassword(req, res) {
       }),
     });
 
+    console.log("📦 [RESET PASSWORD] ORDS raw response:", JSON.stringify(result, null, 2));
+
+    // 🔥 VERY IMPORTANT — extract response
+    const responseMessage =
+      result?.response_message ||
+      result?.items?.[0]?.response_message;
+
+    console.log("🔎 [RESET PASSWORD] Parsed response:", responseMessage);
+
+    if (responseMessage !== "SUCCESS") {
+      console.warn("❌ [RESET PASSWORD] Failed", {
+        email,
+        responseMessage,
+      });
+
+      return res.status(400).json({
+        error: responseMessage || "Reset failed",
+      });
+    }
+
+    console.log("✅ [RESET PASSWORD] Success", { email });
+
     return res.json({ message: "Password updated" });
   } catch (error) {
-    console.error("resetPassword error:", error.message);
+    console.error("💥 [RESET PASSWORD ERROR]", {
+      message: error.message,
+      stack: error.stack,
+    });
+
     res.status(500).json({ error: "Password reset failed" });
   }
 }
