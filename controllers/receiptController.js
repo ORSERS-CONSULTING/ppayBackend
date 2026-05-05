@@ -43,13 +43,25 @@ async function listReceipts(req, res) {
 async function getReceiptDetails(req, res) {
   try {
     const user_id = req.user.id;
+    const { receipt_no, short_code, receipt_id } = req.query;
 
-    const queryString = new URLSearchParams({
-      ...req.query,
+    if (!receipt_no && !short_code && !receipt_id) {
+      return res.status(400).json({ error: "Missing receipt identifier" });
+    }
+
+    const params = new URLSearchParams({
       user_id,
-    }).toString();
+    });
 
-    const result = await callOrds(`/receiptDetails?${queryString}`, {
+    if (receipt_id) {
+      params.append("receipt_id", receipt_id);
+    } else if (short_code) {
+      params.append("short_code", short_code);
+    } else {
+      params.append("receipt_no", receipt_no);
+    }
+
+    const result = await callOrds(`/receiptDetails?${params.toString()}`, {
       method: "GET",
     });
 
@@ -59,7 +71,6 @@ async function getReceiptDetails(req, res) {
     res.status(500).json({ error: "Failed to fetch receipt details" });
   }
 }
-
 async function voidReceipt(req, res) {
   try {
     const user_id = req.user.id;
