@@ -290,6 +290,7 @@ async function verifyOtp(req, res) {
     res.status(500).json({ error: "OTP verification failed" });
   }
 }
+
 async function resetPassword(req, res) {
   try {
     const { email, new_password } = req.body;
@@ -304,17 +305,19 @@ async function resetPassword(req, res) {
       return res.status(400).json({ error: "Missing data" });
     }
 
+    // 🔐 IMPORTANT: hash password before sending
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+
     const result = await callOrds("/resetPassword", {
       method: "POST",
       body: JSON.stringify({
         email,
-        new_password,
+        new_password: hashedPassword, // ✅ send hash
       }),
     });
 
     console.log("📦 [RESET PASSWORD] ORDS raw response:", JSON.stringify(result, null, 2));
 
-    // 🔥 VERY IMPORTANT — extract response
     const responseMessage =
       result?.response_message ||
       result?.items?.[0]?.response_message;
