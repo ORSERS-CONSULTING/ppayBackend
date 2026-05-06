@@ -15,6 +15,8 @@ function hashToken(token) {
     .digest("hex");
 }
 
+const bcrypt = require("bcrypt");
+
 async function login(req, res) {
   try {
     const { email, password, device_id } = req.body;
@@ -23,17 +25,26 @@ async function login(req, res) {
       return res.status(400).json({ error: "Missing credentials" });
     }
 
+    // 🔹 Step 1: Get user (NOT validate password in DB)
     const result = await callOrds("/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email }),
     });
 
-    const userId = result?.out_user_id || result?.OUT_USER_ID;
+   const userId = result?.out_user_id;
+const passwordHash = result?.out_password_hash;
 
-    if (!userId) {
+if (!userId || !passwordHash) {
+  return res.status(401).json({ error: "Invalid credentials" });
+}
+    // 🔹 Step 2: Compare password using bcrypt
+const isMatch = await bcrypt.compare(password, passwordHash);
+    if (!isMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+
+    // 🔹 Step 3: Generate tokens (your existing logic 👍)
     const access_token = signAccessToken({
       sub: String(userId),
       role: "user",
@@ -55,11 +66,11 @@ async function login(req, res) {
     return res.json({
       access_token,
       refresh_token,
-      profile: {
-        user_id: userId,
-        company_id: result.out_company_id,
-        company_name: result.out_company_name,
-      },
+     profile: {
+  user_id: userId,
+  company_id: result.out_company_id,
+  company_name: result.out_company_name,
+}
     });
   } catch (error) {
     console.error("login error:", error.message);
@@ -70,11 +81,26 @@ async function login(req, res) {
 /* ===========================
    REGISTER
 =========================== */
+
 async function register(req, res) {
   try {
+    const { email, password, ...rest } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Missing email or password" });
+    }
+
+    // 🔐 Hash password here (Node layer)
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 🚀 Send ONLY hashed password to ORDS
     const result = await callOrds("/register", {
       method: "POST",
-      body: JSON.stringify(req.body),
+      body: JSON.stringify({
+        email,
+        password_hash: hashedPassword,
+        ...rest, // other fields (name, phone, etc.)
+      }),
     });
 
     res.json(result);
