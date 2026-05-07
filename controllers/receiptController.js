@@ -217,18 +217,27 @@ async function sendReceiptEmail(req, res) {
         error: "Missing receipt_id, company_id, or PDF file",
       });
     }
+const base64Pdf = file.buffer.toString("base64");
 
-    const result = await callOrds("/sendReceiptEmail", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/pdf",
-      },
-      query: {
-        receipt_id,
-        company_id,
-      },
-      body: file.buffer,
-    });
+const result = await callOrds("/sendReceiptEmail", {
+  method: "POST",
+  body: JSON.stringify({
+    receipt_id: Number(req.body.receipt_id),
+    company_id: Number(req.user?.company_id),
+    pdf_base64: base64Pdf,
+  }),
+});
+    // const result = await callOrds("/sendReceiptEmail", {
+    //   method: "POST",
+    //   headers: {
+    //     "Content-Type": "application/pdf",
+    //   },
+    //   query: {
+    //     receipt_id,
+    //     company_id,
+    //   },
+    //   body: file.buffer,
+    // });
 
     console.log("📥 [SEND RECEIPT EMAIL] ORDS response:", result);
 
