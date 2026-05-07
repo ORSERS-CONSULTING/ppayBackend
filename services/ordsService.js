@@ -49,9 +49,9 @@ async function callOrds(endpoint, options = {}) {
 
   // ✅ 6. Error handling (improved logging)
   if (!response.ok) {
-    console.log("❌ ORDS STATUS:", response.status);
-    console.log("❌ ORDS BODY:", responseText);
-    throw new Error(`ORDS ${response.status}: ${responseText}`);
+    // console.log("❌ ORDS STATUS:", response.status);
+    // console.log("❌ ORDS BODY:", responseText);
+    // throw new Error(`ORDS ${response.status}: ${responseText}`);
   }
 
   return data;
