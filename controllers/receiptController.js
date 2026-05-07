@@ -218,7 +218,7 @@ async function sendReceiptEmail(req, res) {
       });
     }
 const base64Pdf = file.buffer.toString("base64");
-
+console.log("📧 [SEND RECEIPT EMAIL] Converted PDF to base64, size:", base64Pdf.length);
 const result = await callOrds("/sendReceiptEmail", {
   method: "POST",
   body: JSON.stringify({
@@ -227,7 +227,8 @@ const result = await callOrds("/sendReceiptEmail", {
     pdf_base64: base64Pdf,
   }),
 });
-    // const result = await callOrds("/sendReceiptEmail", {
+console.log("hello");
+    // const result; = await callOrds("/sendReceiptEmail", {
     //   method: "POST",
     //   headers: {
     //     "Content-Type": "application/pdf",
@@ -239,7 +240,7 @@ const result = await callOrds("/sendReceiptEmail", {
     //   body: file.buffer,
     // });
 
-    console.log("📥 [SEND RECEIPT EMAIL] ORDS response:", result);
+    // console.log("📥 [SEND RECEIPT EMAIL] ORDS response:", result);
 
     const responseMessage =
       result?.response_message ||
