@@ -245,7 +245,7 @@ console.log("hello");
     const responseMessage =
       result?.response_message ||
       result?.items?.[0]?.response_message;
-
+console.log("📧 [SEND RECEIPT EMAIL] Extracted response message:", responseMessage);
     if (responseMessage !== "SUCCESS") {
       return res.status(400).json({
         error: responseMessage || "Email send failed",
