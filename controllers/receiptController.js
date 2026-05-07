@@ -198,7 +198,6 @@ console.log("getLogo → company:", company_id);
 async function sendReceiptEmail(req, res) {
   console.log("📍 [CONTROLLER ENTRY] req.user:", req.user);
   try {
-
     const receipt_id = req.body.receipt_id;
     const company_id = req.user?.company_id;
     
