@@ -121,8 +121,13 @@ async function getPublicReceipt(req, res) {
 }
 async function uploadLogo(req, res) {
   try {
-const company_id = req.user?.company_id;
-    console.log("uploadLogo → user:", user_id);
+    const company_id = req.user?.company_id;
+
+    console.log("uploadLogo → company:", company_id);
+
+    if (!company_id) {
+      return res.status(401).json({ error: "Missing company context" });
+    }
 
     if (!req.file) {
       console.log("uploadLogo → no file received");
@@ -137,16 +142,15 @@ const company_id = req.user?.company_id;
     const mimeType = req.file.mimetype;
     const buffer = req.file.buffer;
 
-   const queryString = new URLSearchParams({
-  company_id,
-}).toString();
-
     console.log("uploadLogo → sending to ORDS");
 
-    const result = await callOrds(`/uploadLogo?${queryString}`, {
+    const result = await callOrds("/uploadLogo", {
       method: "POST",
       headers: {
         "Content-Type": mimeType,
+      },
+      query: {
+        company_id, // 🔥 CLEAN WAY
       },
       body: buffer,
     });
