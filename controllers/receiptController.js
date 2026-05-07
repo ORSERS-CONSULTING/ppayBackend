@@ -248,10 +248,9 @@ async function sendReceiptEmail(req, res) {
       message: error.message,
       stack: error.stack,
     });
-
-    return res.status(500).json({
-      error: "Failed to send receipt email",
-    });
+return res.status(500).json({
+  error: error.message || "Failed to send receipt email",
+});
   }
 }
 module.exports = {
