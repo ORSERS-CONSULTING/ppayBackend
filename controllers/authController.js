@@ -98,10 +98,11 @@ async function login(req, res) {
 =========================== */
 async function register(req, res) {
   try {
-const { user_email, password, ...rest } = req.body;
-    console.log("🟡 [REGISTER] Incoming:", { email, ...rest });
+    const { user_email, password, ...rest } = req.body;
 
-    if (!email || !password) {
+    console.log("🟡 [REGISTER] Incoming:", req.body);
+
+    if (!user_email || !password) {
       return res.status(400).json({ error: "Missing email or password" });
     }
 
@@ -109,8 +110,8 @@ const { user_email, password, ...rest } = req.body;
 
     const payload = {
       ...rest,
-      user_email: email,              // ✅ ORDS expects this
-      password_hash: hashedPassword,  // ✅ ORDS expects this
+      user_email,                     // ✅ FIX
+      password_hash: hashedPassword, // ✅ FIX
     };
 
     console.log("📤 [REGISTER] Sending to ORDS:", {
