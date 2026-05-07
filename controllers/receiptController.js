@@ -297,7 +297,7 @@ async function uploadReceiptPdf(req, res) {
       },
       body: file.buffer,
     });
-
+console.log("uploadReceiptPdf → ORDS response:", result);
     const responseMessage =
       result?.response_message || result?.items?.[0]?.response_message;
 
