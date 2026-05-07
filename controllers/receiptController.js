@@ -284,7 +284,11 @@ async function uploadReceiptPdf(req, res) {
     if (file.mimetype !== "application/pdf") {
       return res.status(400).json({ error: "Only PDF files are allowed" });
     }
-
+console.log("uploadReceiptPdf → received file:", {
+  filename: file.originalname,
+  size: file.size,
+  mimetype: file.mimetype,
+});
     const result = await callOrds("/uploadReceiptPdf", {
       method: "POST",
       headers: {
