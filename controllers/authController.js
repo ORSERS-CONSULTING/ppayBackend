@@ -21,30 +21,38 @@ async function login(req, res) {
   try {
     const { email, password, device_id } = req.body;
 
+    console.log("🟡 [LOGIN] Incoming:", { email, device_id });
+
     if (!email || !password || !device_id) {
+      console.warn("⚠️ [LOGIN] Missing credentials");
       return res.status(400).json({ error: "Missing credentials" });
     }
 
-    // 🔹 Step 1: Get user (NOT validate password in DB)
     const result = await callOrds("/login", {
       method: "POST",
       body: JSON.stringify({ email }),
     });
 
-   const userId = result?.out_user_id;
-const passwordHash = result?.out_password_hash;
+    console.log("📥 [LOGIN] ORDS response:", JSON.stringify(result, null, 2));
 
-if (!userId || !passwordHash) {
-  return res.status(401).json({ error: "Invalid credentials" });
-}
-    // 🔹 Step 2: Compare password using bcrypt
-const isMatch = await bcrypt.compare(password, passwordHash);
-    if (!isMatch) {
+    const userId = result?.out_user_id;
+    const passwordHash = result?.out_password_hash;
+
+    if (!userId || !passwordHash) {
+      console.warn("❌ [LOGIN] User not found or missing hash");
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    console.log("🔐 [LOGIN] Comparing password...");
+    const isMatch = await bcrypt.compare(password, passwordHash);
 
-    // 🔹 Step 3: Generate tokens (your existing logic 👍)
+    console.log("🔎 [LOGIN] Password match result:", isMatch);
+
+    if (!isMatch) {
+      console.warn("❌ [LOGIN] Invalid password");
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
     const access_token = signAccessToken({
       sub: String(userId),
       role: "user",
@@ -52,6 +60,8 @@ const isMatch = await bcrypt.compare(password, passwordHash);
 
     const refresh_token = crypto.randomBytes(64).toString("hex");
     const token_hash = hashToken(refresh_token);
+
+    console.log("🔁 [LOGIN] Creating refresh token...");
 
     await callOrds("/authTokens/create", {
       method: "POST",
@@ -63,49 +73,70 @@ const isMatch = await bcrypt.compare(password, passwordHash);
       }),
     });
 
+    console.log("✅ [LOGIN] Success:", { userId });
+
     return res.json({
       access_token,
       refresh_token,
-     profile: {
-  user_id: userId,
-  company_id: result.out_company_id,
-  company_name: result.out_company_name,
-}
+      profile: {
+        user_id: userId,
+        company_id: result.out_company_id,
+        company_name: result.out_company_name,
+      },
     });
   } catch (error) {
-    console.error("login error:", error.message);
+    console.error("💥 [LOGIN ERROR]", {
+      message: error.message,
+      stack: error.stack,
+    });
+
     res.status(500).json({ error: "Login failed" });
   }
 }
-
 /* ===========================
    REGISTER
 =========================== */
-
 async function register(req, res) {
   try {
     const { email, password, ...rest } = req.body;
 
+    console.log("🟡 [REGISTER] Incoming:", { email, ...rest });
+
     if (!email || !password) {
+      console.warn("⚠️ [REGISTER] Missing email/password");
       return res.status(400).json({ error: "Missing email or password" });
     }
 
-    // 🔐 Hash password here (Node layer)
+    // 🔐 Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 🚀 Send ONLY hashed password to ORDS
+    console.log("🔐 [REGISTER] Password hashed:", {
+      email,
+      hashPreview: hashedPassword.slice(0, 10) + "...", // don't log full hash
+    });
+
+    const payload = {
+      email,
+      password_hash: hashedPassword,
+      ...rest,
+    };
+
+    console.log("📤 [REGISTER] Sending to ORDS:", payload);
+
     const result = await callOrds("/register", {
       method: "POST",
-      body: JSON.stringify({
-        email,
-        password_hash: hashedPassword,
-        ...rest, // other fields (name, phone, etc.)
-      }),
+      body: JSON.stringify(payload),
     });
+
+    console.log("📥 [REGISTER] ORDS response:", JSON.stringify(result, null, 2));
 
     res.json(result);
   } catch (error) {
-    console.error("register error:", error.message);
+    console.error("💥 [REGISTER ERROR]", {
+      message: error.message,
+      stack: error.stack,
+    });
+
     res.status(500).json({ error: "Registration failed" });
   }
 }
@@ -290,56 +321,52 @@ async function verifyOtp(req, res) {
     res.status(500).json({ error: "OTP verification failed" });
   }
 }
-
 async function resetPassword(req, res) {
   try {
     const { email, new_password } = req.body;
 
-    console.log("🔐 [RESET PASSWORD] Incoming:", {
-      email,
-      new_password,
-    });
+    console.log("🟡 [RESET] Incoming:", { email });
 
     if (!email || !new_password) {
-      console.warn("⚠️ Missing data", { email, new_password });
+      console.warn("⚠️ [RESET] Missing data");
       return res.status(400).json({ error: "Missing data" });
     }
 
-    // 🔐 IMPORTANT: hash password before sending
     const hashedPassword = await bcrypt.hash(new_password, 10);
+
+    console.log("🔐 [RESET] Password hashed:", {
+      email,
+      hashPreview: hashedPassword.slice(0, 10) + "...",
+    });
 
     const result = await callOrds("/resetPassword", {
       method: "POST",
       body: JSON.stringify({
         email,
-        new_password: hashedPassword, // ✅ send hash
+        new_password: hashedPassword,
       }),
     });
 
-    console.log("📦 [RESET PASSWORD] ORDS raw response:", JSON.stringify(result, null, 2));
+    console.log("📥 [RESET] ORDS response:", JSON.stringify(result, null, 2));
 
     const responseMessage =
       result?.response_message ||
       result?.items?.[0]?.response_message;
 
-    console.log("🔎 [RESET PASSWORD] Parsed response:", responseMessage);
+    console.log("🔎 [RESET] Parsed response:", responseMessage);
 
     if (responseMessage !== "SUCCESS") {
-      console.warn("❌ [RESET PASSWORD] Failed", {
-        email,
-        responseMessage,
-      });
-
+      console.warn("❌ [RESET] Failed:", responseMessage);
       return res.status(400).json({
         error: responseMessage || "Reset failed",
       });
     }
 
-    console.log("✅ [RESET PASSWORD] Success", { email });
+    console.log("✅ [RESET] Success:", { email });
 
     return res.json({ message: "Password updated" });
   } catch (error) {
-    console.error("💥 [RESET PASSWORD ERROR]", {
+    console.error("💥 [RESET ERROR]", {
       message: error.message,
       stack: error.stack,
     });
