@@ -98,8 +98,7 @@ async function login(req, res) {
 =========================== */
 async function register(req, res) {
   try {
-    const { email, password, ...rest } = req.body;
-
+const { user_email, password, ...rest } = req.body;
     console.log("🟡 [REGISTER] Incoming:", { email, ...rest });
 
     if (!email || !password) {
