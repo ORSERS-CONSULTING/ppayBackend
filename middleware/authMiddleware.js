@@ -11,7 +11,6 @@ function authUser(req, res, next) {
 
     const payload = verifyAccessToken(token);
 
-    console.log("🔓 [AUTH] Decoded token:", payload);
 
     req.user = {
       id: payload.sub,
