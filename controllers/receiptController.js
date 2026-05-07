@@ -199,7 +199,6 @@ async function sendReceiptEmail(req, res) {
   console.log("📍 [CONTROLLER ENTRY] req.user:", req.user);
   try {
 
-console.log("📍 [CONTROLLER] extracted company_id:", company_id);
     const receipt_id = req.body.receipt_id;
     const company_id = req.user?.company_id;
     
