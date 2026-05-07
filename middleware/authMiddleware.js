@@ -5,19 +5,24 @@ function authUser(req, res, next) {
     const header = req.headers.authorization || "";
     const token = header.startsWith("Bearer ") ? header.slice(7) : "";
 
-    if (!token)
+    if (!token) {
       return res.status(401).json({ message: "Missing token" });
+    }
 
     const payload = verifyAccessToken(token);
+
+    console.log("🔓 [AUTH] Decoded token:", payload);
 
     req.user = {
       id: payload.sub,
       role: payload.role,
       email: payload.email,
+      company_id: payload.company_id, // 🔥 CRITICAL FIX
     };
 
     next();
   } catch (err) {
+    console.error("❌ [AUTH ERROR]", err.message);
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 }
