@@ -328,7 +328,7 @@ async function sendReceiptEmailFromDb(req, res) {
       });
     }
 
-    const result = await callOrds("/sendReceiptEmailFromDb", {
+    const result = await callOrds("/sendReceiptEmail", {
       method: "POST",
       body: {
         receipt_id,
