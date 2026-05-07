@@ -14,11 +14,22 @@ router.post(
   upload.single("logo"),
   receiptController.uploadLogo,
 );
+// router.post(
+//   "/sendReceiptEmail",
+//   authUser,
+//   upload.single("file"),
+//   receiptController.sendReceiptEmail
+// );
 router.post(
-  "/sendReceiptEmail",
+  "/sendReceiptEmailFromDb",
   authUser,
-  upload.single("file"),
-  receiptController.sendReceiptEmail
+  receiptController.sendReceiptEmailFromDb
+);
+router.post(
+  "/uploadReceiptPdf",
+  authUser,
+  upload.single("pdf"),
+  receiptController.uploadReceiptPdf
 );
 router.get("/getLogo", authUser, receiptController.getLogo);
 module.exports = router;
