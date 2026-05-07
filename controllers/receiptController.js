@@ -121,7 +121,7 @@ async function getPublicReceipt(req, res) {
 }
 async function uploadLogo(req, res) {
   try {
-    const user_id = req.user?.id;
+const company_id = req.user?.company_id;
     console.log("uploadLogo → user:", user_id);
 
     if (!req.file) {
@@ -137,9 +137,9 @@ async function uploadLogo(req, res) {
     const mimeType = req.file.mimetype;
     const buffer = req.file.buffer;
 
-    const queryString = new URLSearchParams({
-      user_id,
-    }).toString();
+   const queryString = new URLSearchParams({
+  company_id,
+}).toString();
 
     console.log("uploadLogo → sending to ORDS");
 
@@ -161,17 +161,17 @@ async function uploadLogo(req, res) {
 }
 async function getLogo(req, res) {
   try {
-    const user_id = req.user?.id || req.query.user_id;
+    const company_id = req.user?.company_id || req.query.company_id;
 
-    if (!user_id) {
-      return res.status(400).json({ error: "Missing user id" });
-    }
+if (!company_id) {
+  return res.status(400).json({ error: "Missing company id" });
+}
 
-    console.log("getLogo → user:", user_id);
+console.log("getLogo → company:", company_id);
+
 
     const token = await getOrdsAccessToken();
-    const url = `${process.env.ORDS_BASE_URL}/getLogo?user_id=${user_id}`;
-
+    const url = `${process.env.ORDS_BASE_URL}/getLogo?company_id=${company_id}`;
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -191,6 +191,65 @@ async function getLogo(req, res) {
     res.status(500).json({ error: "Failed to fetch logo" });
   }
 }
+async function sendReceiptEmail(req, res) {
+  try {
+    const receipt_id = req.body.receipt_id;
+    const company_id = req.user?.company_id;
+    const file = req.file;
+
+    console.log("📧 [SEND RECEIPT EMAIL] Incoming:", {
+      receipt_id,
+      company_id,
+      hasFile: !!file,
+      filename: file?.originalname,
+      size: file?.size,
+      mimetype: file?.mimetype,
+    });
+
+    if (!receipt_id || !company_id || !file) {
+      return res.status(400).json({
+        error: "Missing receipt_id, company_id, or PDF file",
+      });
+    }
+
+    const result = await callOrds("/sendReceiptEmail", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/pdf",
+      },
+      query: {
+        receipt_id,
+        company_id,
+      },
+      body: file.buffer,
+    });
+
+    console.log("📥 [SEND RECEIPT EMAIL] ORDS response:", result);
+
+    const responseMessage =
+      result?.response_message ||
+      result?.items?.[0]?.response_message;
+
+    if (responseMessage !== "SUCCESS") {
+      return res.status(400).json({
+        error: responseMessage || "Email send failed",
+      });
+    }
+
+    return res.json({
+      message: "Receipt email sent successfully",
+    });
+  } catch (error) {
+    console.error("💥 [SEND RECEIPT EMAIL ERROR]", {
+      message: error.message,
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Failed to send receipt email",
+    });
+  }
+}
 module.exports = {
   createReceipt,
   listReceipts,
@@ -199,4 +258,5 @@ module.exports = {
   getPublicReceipt,
   uploadLogo,
   getLogo,
+  sendReceiptEmail,
 };

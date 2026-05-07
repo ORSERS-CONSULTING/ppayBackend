@@ -55,6 +55,7 @@ async function login(req, res) {
 
     const access_token = signAccessToken({
       sub: String(userId),
+      company_id: result.out_company_id, // 🔥 comes from ORDS
       role: "user",
     });
 
@@ -110,7 +111,7 @@ async function register(req, res) {
 
     const payload = {
       ...rest,
-      user_email,                     // ✅ FIX
+      user_email, // ✅ FIX
       password_hash: hashedPassword, // ✅ FIX
     };
 
@@ -124,7 +125,10 @@ async function register(req, res) {
       body: JSON.stringify(payload),
     });
 
-    console.log("📥 [REGISTER] ORDS response:", JSON.stringify(result, null, 2));
+    console.log(
+      "📥 [REGISTER] ORDS response:",
+      JSON.stringify(result, null, 2),
+    );
 
     return res.json(result);
   } catch (error) {
@@ -185,9 +189,9 @@ async function refresh(req, res) {
 
     const access_token = signAccessToken({
       sub: String(userId),
+      company_id: result.out_company_id, // 🔥 comes from ORDS
       role: "user",
     });
-
     return res.json({
       access_token,
       refresh_token: newRefreshToken,
@@ -197,7 +201,6 @@ async function refresh(req, res) {
     res.status(500).json({ error: "Refresh failed" });
   }
 }
-
 
 async function logout(req, res) {
   try {
@@ -236,14 +239,12 @@ async function deleteAccount(req, res) {
   } catch (error) {
     // console.error("==== DELETE ACCOUNT ERROR ====");
     // console.error("Message:", error);
-
     // res.status(500).json({
     //   error: "Account deletion failed",
     //   details: error.response?.data || error.message,
     // });
   }
 }
-
 
 async function sendOtp(req, res) {
   try {
@@ -285,11 +286,13 @@ async function verifyOtp(req, res) {
       body: JSON.stringify({ email, otp_code }),
     });
 
-    console.log("📦 [VERIFY OTP] ORDS raw response:", JSON.stringify(result, null, 2));
+    console.log(
+      "📦 [VERIFY OTP] ORDS raw response:",
+      JSON.stringify(result, null, 2),
+    );
 
     const verificationStatus =
-      result?.verification_status ||
-      result?.items?.[0]?.verification_status;
+      result?.verification_status || result?.items?.[0]?.verification_status;
 
     console.log("🔎 [VERIFY OTP] Parsed status:", verificationStatus);
 
@@ -346,8 +349,7 @@ async function resetPassword(req, res) {
     console.log("📥 [RESET] ORDS response:", JSON.stringify(result, null, 2));
 
     const responseMessage =
-      result?.response_message ||
-      result?.items?.[0]?.response_message;
+      result?.response_message || result?.items?.[0]?.response_message;
 
     console.log("🔎 [RESET] Parsed response:", responseMessage);
 
@@ -371,4 +373,13 @@ async function resetPassword(req, res) {
   }
 }
 
-module.exports = { login, register, refresh, logout, deleteAccount, sendOtp, verifyOtp, resetPassword };
+module.exports = {
+  login,
+  register,
+  refresh,
+  logout,
+  deleteAccount,
+  sendOtp,
+  verifyOtp,
+  resetPassword,
+};
