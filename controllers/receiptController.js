@@ -196,9 +196,13 @@ console.log("getLogo → company:", company_id);
   }
 }
 async function sendReceiptEmail(req, res) {
+  console.log("📍 [CONTROLLER ENTRY] req.user:", req.user);
   try {
+
+console.log("📍 [CONTROLLER] extracted company_id:", company_id);
     const receipt_id = req.body.receipt_id;
     const company_id = req.user?.company_id;
+    
     const file = req.file;
 
     console.log("📧 [SEND RECEIPT EMAIL] Incoming:", {
@@ -248,9 +252,10 @@ async function sendReceiptEmail(req, res) {
       message: error.message,
       stack: error.stack,
     });
-return res.status(500).json({
-  error: error.message || "Failed to send receipt email",
-});
+
+    return res.status(500).json({
+      error: "Failed to send receipt email",
+    });
   }
 }
 module.exports = {
