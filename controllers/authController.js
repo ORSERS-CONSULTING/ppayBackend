@@ -103,25 +103,21 @@ async function register(req, res) {
     console.log("🟡 [REGISTER] Incoming:", { email, ...rest });
 
     if (!email || !password) {
-      console.warn("⚠️ [REGISTER] Missing email/password");
       return res.status(400).json({ error: "Missing email or password" });
     }
 
-    // 🔐 Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    console.log("🔐 [REGISTER] Password hashed:", {
-      email,
-      hashPreview: hashedPassword.slice(0, 10) + "...", // don't log full hash
-    });
-
     const payload = {
-      email,
-      password_hash: hashedPassword,
       ...rest,
+      user_email: email,              // ✅ ORDS expects this
+      password_hash: hashedPassword,  // ✅ ORDS expects this
     };
 
-    console.log("📤 [REGISTER] Sending to ORDS:", payload);
+    console.log("📤 [REGISTER] Sending to ORDS:", {
+      ...payload,
+      password_hash: hashedPassword.slice(0, 10) + "...",
+    });
 
     const result = await callOrds("/register", {
       method: "POST",
@@ -130,14 +126,14 @@ async function register(req, res) {
 
     console.log("📥 [REGISTER] ORDS response:", JSON.stringify(result, null, 2));
 
-    res.json(result);
+    return res.json(result);
   } catch (error) {
     console.error("💥 [REGISTER ERROR]", {
       message: error.message,
       stack: error.stack,
     });
 
-    res.status(500).json({ error: "Registration failed" });
+    return res.status(500).json({ error: "Registration failed" });
   }
 }
 
