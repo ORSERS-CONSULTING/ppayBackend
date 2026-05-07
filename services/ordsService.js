@@ -3,7 +3,7 @@ const { getOrdsAccessToken } = require("./oauthService");
 async function callOrds(endpoint, options = {}) {
   const token = await getOrdsAccessToken();
 
-  // ✅ 1. Build URL with optional query params
+  // 1. Build URL
   let url = `${process.env.ORDS_BASE_URL}${endpoint}`;
 
   if (options.query) {
@@ -11,47 +11,49 @@ async function callOrds(endpoint, options = {}) {
     url += `?${qs}`;
   }
 
-  // ✅ 2. Prepare headers
+  // 2. Headers
   const headers = {
     Authorization: `Bearer ${token}`,
     ...(options.headers || {}),
   };
 
-  // ✅ 3. Only set JSON header if:
-  // - body exists
-  // - no content-type already set
-  // - body is NOT a Buffer (i.e. not PDF)
-  if (
-    options.body &&
-    !headers["Content-Type"] &&
-    !(options.body instanceof Buffer)
-  ) {
-    headers["Content-Type"] = "application/json";
+  // 3. Handle body properly
+  let body = options.body;
+
+  if (body instanceof Buffer) {
+    // ✅ RAW binary (PDF)
+    headers["Content-Type"] = headers["Content-Type"] || "application/pdf";
+  } else if (body && typeof body === "object") {
+    // ✅ JSON
+    headers["Content-Type"] = headers["Content-Type"] || "application/json";
+    body = JSON.stringify(body);
   }
 
-  // ✅ 4. Make request
+  // 4. Request
   const response = await fetch(url, {
     method: options.method || "GET",
     headers,
-    body: options.body,
+    body,
   });
 
-  // ✅ 5. Read response
-  const buffer = await response.arrayBuffer();
-  const responseText = Buffer.from(buffer).toString();
+  // 5. Response handling (SAFE)
+  const contentType = response.headers.get("content-type") || "";
 
   let data;
-  try {
-    data = responseText ? JSON.parse(responseText) : {};
-  } catch {
-    data = { raw: responseText };
+
+  if (contentType.includes("application/json")) {
+    data = await response.json();
+  } else {
+    const text = await response.text();
+    data = text ? { raw: text } : {};
   }
 
-  // ✅ 6. Error handling (improved logging)
+  // 6. Error handling
   if (!response.ok) {
-    // console.log("❌ ORDS STATUS:", response.status);
-    // console.log("❌ ORDS BODY:", responseText);
-    // throw new Error(`ORDS ${response.status}: ${responseText}`);
+    console.log("❌ ORDS STATUS:", response.status);
+    console.log("❌ ORDS RESPONSE:", data);
+
+    throw new Error(`ORDS ${response.status}`);
   }
 
   return data;

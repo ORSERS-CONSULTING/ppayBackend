@@ -195,60 +195,154 @@ console.log("getLogo → company:", company_id);
     res.status(500).json({ error: "Failed to fetch logo" });
   }
 }
-async function sendReceiptEmail(req, res) {
-  console.log("📍 [CONTROLLER ENTRY] req.user:", req.user);
+// async function sendReceiptEmail(req, res) {
+//   console.log("📍 [CONTROLLER ENTRY] req.user:", req.user);
+//   try {
+//     const receipt_id = req.body.receipt_id;
+//     const company_id = req.user?.company_id;
+    
+//     const file = req.file;
+
+//     console.log("📧 [SEND RECEIPT EMAIL] Incoming:", {
+//       receipt_id,
+//       company_id,
+//       hasFile: !!file,
+//       filename: file?.originalname,
+//       size: file?.size,
+//       mimetype: file?.mimetype,
+//     });
+
+//     if (!receipt_id || !company_id || !file) {
+//       return res.status(400).json({
+//         error: "Missing receipt_id, company_id, or PDF file",
+//       });
+//     }
+// const base64Pdf = file.buffer.toString("base64");
+// console.log("📧 [SEND RECEIPT EMAIL] Converted PDF to base64, size:", base64Pdf.length);
+// const result = await callOrds("/sendReceiptEmail", {
+//   method: "POST",
+//   headers: {
+//     "Content-Type": "application/pdf", // 🔥 important
+//   },
+//   query: {
+//     receipt_id,
+//     company_id,
+//   },
+//   body: file.buffer, // 🔥 RAW BUFFER
+// });
+// console.log("hello");
+//     // const result; = await callOrds("/sendReceiptEmail", {
+//     //   method: "POST",
+//     //   headers: {
+//     //     "Content-Type": "application/pdf",
+//     //   },
+//     //   query: {
+//     //     receipt_id,
+//     //     company_id,
+//     //   },
+//     //   body: file.buffer,
+//     // });
+
+//     // console.log("📥 [SEND RECEIPT EMAIL] ORDS response:", result);
+
+//     const responseMessage =
+//       result?.response_message ||
+//       result?.items?.[0]?.response_message;
+// console.log("📧 result:", result);
+//     if (responseMessage !== "SUCCESS") {
+//       return res.status(400).json({
+//         error: responseMessage || "Email send failed",
+//       });
+//     }
+
+//     return res.json({
+//       message: "Receipt email sent successfully",
+//     });
+//   } catch (error) {
+//     console.error("💥 [SEND RECEIPT EMAIL ERROR]", {
+//       message: error.message,
+//       stack: error.stack,
+//     });
+
+//     return res.status(500).json({
+//       error: "Failed to send receipt email",
+//     });
+//   }
+// }
+async function uploadReceiptPdf(req, res) {
   try {
     const receipt_id = req.body.receipt_id;
     const company_id = req.user?.company_id;
-    
     const file = req.file;
-
-    console.log("📧 [SEND RECEIPT EMAIL] Incoming:", {
-      receipt_id,
-      company_id,
-      hasFile: !!file,
-      filename: file?.originalname,
-      size: file?.size,
-      mimetype: file?.mimetype,
-    });
 
     if (!receipt_id || !company_id || !file) {
       return res.status(400).json({
         error: "Missing receipt_id, company_id, or PDF file",
       });
     }
-const base64Pdf = file.buffer.toString("base64");
-console.log("📧 [SEND RECEIPT EMAIL] Converted PDF to base64, size:", base64Pdf.length);
-const result = await callOrds("/sendReceiptEmail", {
-  method: "POST",
-  body: JSON.stringify({
-    receipt_id: Number(req.body.receipt_id),
-    company_id: Number(req.user?.company_id),
-    pdf_base64: base64Pdf,
-  }),
-});
-console.log("hello");
-    // const result; = await callOrds("/sendReceiptEmail", {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/pdf",
-    //   },
-    //   query: {
-    //     receipt_id,
-    //     company_id,
-    //   },
-    //   body: file.buffer,
-    // });
 
-    // console.log("📥 [SEND RECEIPT EMAIL] ORDS response:", result);
+    if (file.mimetype !== "application/pdf") {
+      return res.status(400).json({ error: "Only PDF files are allowed" });
+    }
+
+    const result = await callOrds("/uploadReceiptPdf", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/pdf",
+      },
+      query: {
+        receipt_id,
+        company_id,
+        file_name: file.originalname,
+      },
+      body: file.buffer,
+    });
+
+    const responseMessage =
+      result?.response_message || result?.items?.[0]?.response_message;
+
+    if (responseMessage !== "SUCCESS") {
+      return res.status(400).json({
+        error: responseMessage || "PDF upload failed",
+      });
+    }
+
+    return res.json({
+      message: "Receipt PDF stored successfully",
+    });
+  } catch (error) {
+    console.error("uploadReceiptPdf error:", error);
+    return res.status(500).json({
+      error: "Failed to upload receipt PDF",
+    });
+  }
+}
+async function sendReceiptEmailFromDb(req, res) {
+  try {
+    const receipt_id = req.body.receipt_id;
+    const company_id = req.user?.company_id;
+
+    if (!receipt_id || !company_id) {
+      return res.status(400).json({
+        error: "Missing receipt_id or company_id",
+      });
+    }
+
+    const result = await callOrds("/sendReceiptEmailFromDb", {
+      method: "POST",
+      body: {
+        receipt_id,
+        company_id,
+      },
+    });
 
     const responseMessage =
       result?.response_message ||
       result?.items?.[0]?.response_message;
-console.log("📧 result:", result);
+
     if (responseMessage !== "SUCCESS") {
       return res.status(400).json({
-        error: responseMessage || "Email send failed",
+        error: responseMessage || "Email failed",
       });
     }
 
@@ -256,11 +350,7 @@ console.log("📧 result:", result);
       message: "Receipt email sent successfully",
     });
   } catch (error) {
-    console.error("💥 [SEND RECEIPT EMAIL ERROR]", {
-      message: error.message,
-      stack: error.stack,
-    });
-
+    console.error("sendReceiptEmailFromDb error:", error);
     return res.status(500).json({
       error: "Failed to send receipt email",
     });
@@ -274,5 +364,6 @@ module.exports = {
   getPublicReceipt,
   uploadLogo,
   getLogo,
-  sendReceiptEmail,
+  uploadReceiptPdf, // Reusing the same function for simplicity
+  sendReceiptEmailFromDb,
 };
