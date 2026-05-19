@@ -43,12 +43,18 @@ async function listReceipts(req, res) {
       limit,
     };
 
-    const queryString = new URLSearchParams(queryParams).toString();
+const queryString = new URLSearchParams(queryParams).toString();
 
-    const result = await callOrds(`/receipts?${queryString}`, {
-      method: "GET",
-    });
+console.log("========== LIST PARAMS ==========");
+console.log(queryParams);
 
+console.log("========== FINAL ORDS URL ==========");
+console.log(`/receipts?${queryString}`);
+
+const result = await callOrds(`/receipts?${queryString}`, {
+  method: "GET",
+});
+   
     res.json(result);
   } catch (error) {
     console.error("listReceipts error:", error);
