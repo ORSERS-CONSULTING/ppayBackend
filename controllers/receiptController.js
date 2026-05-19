@@ -61,9 +61,20 @@ async function listReceipts(req, res) {
 
 async function getReceiptDetails(req, res) {
   try {
-    const company_id = req.user.company_id;
+    console.log("========== REQ.USER ==========");
+    console.log(req.user);
+
+    // support both camelCase and snake_case
+    const company_id =
+      req.user?.company_id || req.user?.companyId;
 
     const { receipt_no, short_code, receipt_id } = req.query;
+
+    if (!company_id) {
+      return res.status(400).json({
+        error: "Missing company context",
+      });
+    }
 
     if (!receipt_no && !short_code && !receipt_id) {
       return res.status(400).json({
@@ -76,22 +87,27 @@ async function getReceiptDetails(req, res) {
     });
 
     if (receipt_id) {
-      params.append("receipt_id", receipt_id);
+      params.append("receipt_id", String(receipt_id));
     } else if (short_code) {
-      params.append("short_code", short_code);
+      params.append("short_code", String(short_code));
     } else {
-      params.append("receipt_no", receipt_no);
+      params.append("receipt_no", String(receipt_no));
     }
 
     console.log("========== RECEIPT DETAILS PARAMS ==========");
     console.log(params.toString());
 
-    const result = await callOrds(
-      `/receiptDetails?${params.toString()}`,
-      {
-        method: "GET",
-      }
-    );
+    const ordsUrl = `/receiptDetails?${params.toString()}`;
+
+    console.log("========== ORDS URL ==========");
+    console.log(ordsUrl);
+
+    const result = await callOrds(ordsUrl, {
+      method: "GET",
+    });
+
+    console.log("========== ORDS RESULT ==========");
+    console.log(JSON.stringify(result, null, 2));
 
     res.json(result);
   } catch (error) {
