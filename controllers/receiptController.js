@@ -24,10 +24,26 @@ async function listReceipts(req, res) {
   try {
     const user_id = req.user.id;
 
-    const queryString = new URLSearchParams({
+    // Safe pagination defaults
+    const offset = Math.max(0, Number(req.query.offset || 0));
+
+    const limit = Math.min(
+      Math.max(1, Number(req.query.limit || 50)),
+      100
+    );
+
+    const queryParams = {
       ...req.query,
-      user_id, // force user_id from JWT
-    }).toString();
+
+      // force secure values
+      user_id,
+
+      // sanitized pagination
+      offset,
+      limit,
+    };
+
+    const queryString = new URLSearchParams(queryParams).toString();
 
     const result = await callOrds(`/receipts?${queryString}`, {
       method: "GET",
@@ -35,8 +51,11 @@ async function listReceipts(req, res) {
 
     res.json(result);
   } catch (error) {
-    console.error("listReceipts error:", error.message);
-    res.status(500).json({ error: "Failed to fetch receipts" });
+    console.error("listReceipts error:", error);
+
+    res.status(500).json({
+      error: "Failed to fetch receipts",
+    });
   }
 }
 
