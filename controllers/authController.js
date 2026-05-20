@@ -162,13 +162,26 @@ async function refresh(req, res) {
       }),
     });
 
+    console.log("🔁 [REFRESH] ORDS validate result:", result);
+
     if (!result?.user_id) {
       return res.status(401).json({ error: "Invalid refresh token" });
     }
 
     const userId = result.user_id;
 
-    // 🔁 OPTIONAL (Recommended): Rotate refresh token
+    const companyId =
+      result.company_id ||
+      result.out_company_id ||
+      result.outCompanyId;
+
+    if (!companyId) {
+      console.error("❌ [REFRESH] Missing company_id from ORDS:", result);
+      return res.status(401).json({
+        error: "Missing company context",
+      });
+    }
+
     await callOrds("/authTokens/revoke", {
       method: "POST",
       body: JSON.stringify({ token_hash, device_id }),
@@ -189,9 +202,10 @@ async function refresh(req, res) {
 
     const access_token = signAccessToken({
       sub: String(userId),
-      company_id: result.out_company_id, // 🔥 comes from ORDS
+      company_id: companyId,
       role: "user",
     });
+
     return res.json({
       access_token,
       refresh_token: newRefreshToken,

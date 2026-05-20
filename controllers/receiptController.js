@@ -3,7 +3,7 @@ const { getOrdsAccessToken } = require("../services/oauthService");
 
 async function createReceipt(req, res) {
   try {
-    const user_id = req.user.id;
+    const user_id = req.user?.id;
 
     const result = await callOrds("/receipts", {
       method: "POST",
@@ -22,7 +22,7 @@ async function createReceipt(req, res) {
 
 async function listReceipts(req, res) {
   try {
-    const user_id = req.user.id;
+    const user_id = req.user?.id;
 
     // Safe pagination defaults
     const offset = Math.max(0, Number(req.query.offset || 0));
@@ -63,7 +63,7 @@ async function listReceipts(req, res) {
 }
 async function countReceipts(req, res) {
   try {
-    const user_id = req.user.id;
+    const user_id = req.user?.id;
 
     const company_id =
       req.user?.company_id || req.user?.companyId;
@@ -157,7 +157,7 @@ async function getReceiptDetails(req, res) {
 }
 async function voidReceipt(req, res) {
   try {
-    const user_id = req.user.id;
+    const user_id = req.user?.id;
 
     const queryString = new URLSearchParams({
       ...req.query,
