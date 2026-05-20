@@ -27,10 +27,7 @@ async function listReceipts(req, res) {
     // Safe pagination defaults
     const offset = Math.max(0, Number(req.query.offset || 0));
 
-    const limit = Math.min(
-      Math.max(1, Number(req.query.limit || 50)),
-      100
-    );
+    const limit = Math.min(Math.max(1, Number(req.query.limit || 50)), 100);
 
     const queryParams = {
       ...req.query,
@@ -43,18 +40,18 @@ async function listReceipts(req, res) {
       limit,
     };
 
-const queryString = new URLSearchParams(queryParams).toString();
+    const queryString = new URLSearchParams(queryParams).toString();
 
-console.log("========== LIST PARAMS ==========");
-console.log(queryParams);
+    console.log("========== LIST PARAMS ==========");
+    console.log(queryParams);
 
-console.log("========== FINAL ORDS URL ==========");
-console.log(`/receipts?${queryString}`);
+    console.log("========== FINAL ORDS URL ==========");
+    console.log(`/receipts?${queryString}`);
 
-const result = await callOrds(`/receipts?${queryString}`, {
-  method: "GET",
-});
-   
+    const result = await callOrds(`/receipts?${queryString}`, {
+      method: "GET",
+    });
+
     res.json(result);
   } catch (error) {
     console.error("listReceipts error:", error);
@@ -64,15 +61,45 @@ const result = await callOrds(`/receipts?${queryString}`, {
     });
   }
 }
+async function countReceipts(req, res) {
+  try {
+    const user_id = req.user.id;
 
+    const queryParams = {
+      ...req.query,
+
+      // force secure values
+      user_id,
+    };
+
+    const queryString = new URLSearchParams(queryParams).toString();
+
+    console.log("========== COUNT RECEIPTS PARAMS ==========");
+    console.log(queryParams);
+
+    console.log("========== FINAL ORDS URL ==========");
+    console.log(`/countReceipts?${queryString}`);
+
+    const result = await callOrds(`/countReceipt?${queryString}`, {
+      method: "GET",
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error("countReceipts error:", error);
+
+    res.status(500).json({
+      error: "Failed to fetch receipt counts",
+    });
+  }
+}
 async function getReceiptDetails(req, res) {
   try {
     console.log("========== REQ.USER ==========");
     console.log(req.user);
 
     // support both camelCase and snake_case
-    const company_id =
-      req.user?.company_id || req.user?.companyId;
+    const company_id = req.user?.company_id || req.user?.companyId;
 
     const { receipt_no, short_code, receipt_id } = req.query;
 
@@ -220,12 +247,11 @@ async function getLogo(req, res) {
   try {
     const company_id = req.user?.company_id || req.query.company_id;
 
-if (!company_id) {
-  return res.status(400).json({ error: "Missing company id" });
-}
+    if (!company_id) {
+      return res.status(400).json({ error: "Missing company id" });
+    }
 
-console.log("getLogo → company:", company_id);
-
+    console.log("getLogo → company:", company_id);
 
     const token = await getOrdsAccessToken();
     const url = `${process.env.ORDS_BASE_URL}/getLogo?company_id=${company_id}`;
@@ -253,7 +279,7 @@ console.log("getLogo → company:", company_id);
 //   try {
 //     const receipt_id = req.body.receipt_id;
 //     const company_id = req.user?.company_id;
-    
+
 //     const file = req.file;
 
 //     console.log("📧 [SEND RECEIPT EMAIL] Incoming:", {
@@ -337,11 +363,11 @@ async function uploadReceiptPdf(req, res) {
     if (file.mimetype !== "application/pdf") {
       return res.status(400).json({ error: "Only PDF files are allowed" });
     }
-console.log("uploadReceiptPdf → received file:", {
-  filename: file.originalname,
-  size: file.size,
-  mimetype: file.mimetype,
-});
+    console.log("uploadReceiptPdf → received file:", {
+      filename: file.originalname,
+      size: file.size,
+      mimetype: file.mimetype,
+    });
     const result = await callOrds("/uploadReceiptPdf", {
       method: "POST",
       headers: {
@@ -354,7 +380,7 @@ console.log("uploadReceiptPdf → received file:", {
       },
       body: file.buffer,
     });
-console.log("uploadReceiptPdf → ORDS response:", result);
+    console.log("uploadReceiptPdf → ORDS response:", result);
     const responseMessage =
       result?.response_message || result?.items?.[0]?.response_message;
 
@@ -394,8 +420,7 @@ async function sendReceiptEmailFromDb(req, res) {
     });
 
     const responseMessage =
-      result?.response_message ||
-      result?.items?.[0]?.response_message;
+      result?.response_message || result?.items?.[0]?.response_message;
 
     if (responseMessage !== "SUCCESS") {
       return res.status(400).json({
@@ -423,4 +448,5 @@ module.exports = {
   getLogo,
   uploadReceiptPdf, // Reusing the same function for simplicity
   sendReceiptEmailFromDb,
+  countReceipts,
 };

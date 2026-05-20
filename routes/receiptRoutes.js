@@ -11,7 +11,7 @@ router.post("/receipts", authUser, receiptController.createReceipt);
 router.get("/receipts", authUser, receiptController.listReceipts);
 router.get("/receiptDetails", authUser, receiptController.getReceiptDetails);
 router.post("/voidReceipt", authUser, receiptController.voidReceipt);
-
+router.get("/countReceipts", authUser, receiptController.countReceipts);
 // Logo
 router.post(
   "/uploadLogo",
