@@ -65,11 +65,15 @@ async function countReceipts(req, res) {
   try {
     const user_id = req.user.id;
 
+    const company_id =
+      req.user?.company_id || req.user?.companyId;
+
     const queryParams = {
       ...req.query,
 
       // force secure values
       user_id,
+      company_id,
     };
 
     const queryString = new URLSearchParams(queryParams).toString();
@@ -80,7 +84,7 @@ async function countReceipts(req, res) {
     console.log("========== FINAL ORDS URL ==========");
     console.log(`/countReceipts?${queryString}`);
 
-    const result = await callOrds(`/countReceipt?${queryString}`, {
+    const result = await callOrds(`/countReceipts?${queryString}`, {
       method: "GET",
     });
 
