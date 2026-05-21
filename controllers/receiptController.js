@@ -457,11 +457,25 @@ async function createProduct(req, res) {
 
 async function updateProduct(req, res) {
   try {
+    console.log("========== UPDATE PRODUCT req.user ==========");
+    console.log(req.user);
+
+    console.log("========== UPDATE PRODUCT params ==========");
+    console.log(req.params);
+
+    console.log("========== UPDATE PRODUCT incoming body ==========");
+    console.log(req.body);
+
     const user_id = req.user?.id;
     const company_id = req.user?.company_id || req.user?.companyId;
 
     if (!user_id || !company_id) {
-      return res.status(401).json({ error: "Missing user or company context" });
+      console.log("========== UPDATE PRODUCT MISSING CONTEXT ==========");
+      console.log({ user_id, company_id });
+
+      return res.status(401).json({
+        error: "Missing user or company context",
+      });
     }
 
     const body = {
@@ -471,25 +485,46 @@ async function updateProduct(req, res) {
       company_id,
     };
 
+    console.log("========== UPDATE PRODUCT body sent to ORDS ==========");
+    console.log(body);
+
     const result = await callOrds("/products", {
       method: "PUT",
       body,
     });
 
+    console.log("========== UPDATE PRODUCT ORDS RESULT ==========");
+    console.log(JSON.stringify(result, null, 2));
+
     res.json(result);
   } catch (error) {
-    console.error("updateProduct error:", error.message);
-    res.status(500).json({ error: "Failed to update product" });
+    console.error("updateProduct error:", error);
+
+    res.status(500).json({
+      error: "Failed to update product",
+      detail: error.message,
+    });
   }
 }
 
 async function deactivateProduct(req, res) {
   try {
+    console.log("========== DEACTIVATE PRODUCT req.user ==========");
+    console.log(req.user);
+
+    console.log("========== DEACTIVATE PRODUCT params ==========");
+    console.log(req.params);
+
     const user_id = req.user?.id;
     const company_id = req.user?.company_id || req.user?.companyId;
 
     if (!user_id || !company_id) {
-      return res.status(401).json({ error: "Missing user or company context" });
+      console.log("========== DEACTIVATE PRODUCT MISSING CONTEXT ==========");
+      console.log({ user_id, company_id });
+
+      return res.status(401).json({
+        error: "Missing user or company context",
+      });
     }
 
     const body = {
@@ -498,15 +533,25 @@ async function deactivateProduct(req, res) {
       company_id,
     };
 
+    console.log("========== DEACTIVATE PRODUCT body sent to ORDS ==========");
+    console.log(body);
+
     const result = await callOrds("/products", {
       method: "DELETE",
       body,
     });
 
+    console.log("========== DEACTIVATE PRODUCT ORDS RESULT ==========");
+    console.log(JSON.stringify(result, null, 2));
+
     res.json(result);
   } catch (error) {
-    console.error("deactivateProduct error:", error.message);
-    res.status(500).json({ error: "Failed to deactivate product" });
+    console.error("deactivateProduct error:", error);
+
+    res.status(500).json({
+      error: "Failed to deactivate product",
+      detail: error.message,
+    });
   }
 }
 module.exports = {
