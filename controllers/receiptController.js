@@ -3,17 +3,48 @@ const { getOrdsAccessToken } = require("../services/oauthService");
 
 async function createReceipt(req, res) {
   try {
+    console.log("========== CREATE RECEIPT req.user ==========");
+    console.log(req.user);
+
+    console.log("========== CREATE RECEIPT incoming body ==========");
+    console.log(req.body);
+
+    const user_id = req.user?.id;
+    const company_id = req.user?.company_id || req.user?.companyId;
+
+    if (!user_id || !company_id) {
+      console.log("========== CREATE RECEIPT MISSING CONTEXT ==========");
+      console.log({ user_id, company_id });
+
+      return res.status(401).json({
+        error: "Missing user or company context",
+      });
+    }
+
+    const body = {
+      ...req.body,
+      user_id,
+      company_id,
+    };
+
+    console.log("========== CREATE RECEIPT body sent to ORDS ==========");
+    console.log(body);
+
     const result = await callOrds("/receipts", {
       method: "POST",
-      body: req.body,
+      body,
     });
+
+    console.log("========== CREATE RECEIPT ORDS RESULT ==========");
+    console.log(JSON.stringify(result, null, 2));
 
     res.json(result);
   } catch (error) {
-    console.error("createReceipt error:", error.message);
+    console.error("createReceipt error:", error);
 
     res.status(500).json({
       error: "Failed to create receipt",
+      detail: error.message,
     });
   }
 }
