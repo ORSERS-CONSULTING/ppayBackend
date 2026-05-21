@@ -3,17 +3,18 @@ const { getOrdsAccessToken } = require("../services/oauthService");
 
 async function createReceipt(req, res) {
   try {
-    const user_id = req.user?.id;
-
     const result = await callOrds("/receipts", {
       method: "POST",
-      body,
+      body: req.body,
     });
 
     res.json(result);
   } catch (error) {
     console.error("createReceipt error:", error.message);
-    res.status(500).json({ error: "Failed to create receipt" });
+
+    res.status(500).json({
+      error: "Failed to create receipt",
+    });
   }
 }
 
