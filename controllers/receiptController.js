@@ -7,10 +7,7 @@ async function createReceipt(req, res) {
 
     const result = await callOrds("/receipts", {
       method: "POST",
-      body: JSON.stringify({
-        ...req.body,
-        user_id, // override user_id from token
-      }),
+      body,
     });
 
     res.json(result);
@@ -278,80 +275,7 @@ async function getLogo(req, res) {
     res.status(500).json({ error: "Failed to fetch logo" });
   }
 }
-// async function sendReceiptEmail(req, res) {
-//   console.log("📍 [CONTROLLER ENTRY] req.user:", req.user);
-//   try {
-//     const receipt_id = req.body.receipt_id;
-//     const company_id = req.user?.company_id;
 
-//     const file = req.file;
-
-//     console.log("📧 [SEND RECEIPT EMAIL] Incoming:", {
-//       receipt_id,
-//       company_id,
-//       hasFile: !!file,
-//       filename: file?.originalname,
-//       size: file?.size,
-//       mimetype: file?.mimetype,
-//     });
-
-//     if (!receipt_id || !company_id || !file) {
-//       return res.status(400).json({
-//         error: "Missing receipt_id, company_id, or PDF file",
-//       });
-//     }
-// const base64Pdf = file.buffer.toString("base64");
-// console.log("📧 [SEND RECEIPT EMAIL] Converted PDF to base64, size:", base64Pdf.length);
-// const result = await callOrds("/sendReceiptEmail", {
-//   method: "POST",
-//   headers: {
-//     "Content-Type": "application/pdf", // 🔥 important
-//   },
-//   query: {
-//     receipt_id,
-//     company_id,
-//   },
-//   body: file.buffer, // 🔥 RAW BUFFER
-// });
-// console.log("hello");
-//     // const result; = await callOrds("/sendReceiptEmail", {
-//     //   method: "POST",
-//     //   headers: {
-//     //     "Content-Type": "application/pdf",
-//     //   },
-//     //   query: {
-//     //     receipt_id,
-//     //     company_id,
-//     //   },
-//     //   body: file.buffer,
-//     // });
-
-//     // console.log("📥 [SEND RECEIPT EMAIL] ORDS response:", result);
-
-//     const responseMessage =
-//       result?.response_message ||
-//       result?.items?.[0]?.response_message;
-// console.log("📧 result:", result);
-//     if (responseMessage !== "SUCCESS") {
-//       return res.status(400).json({
-//         error: responseMessage || "Email send failed",
-//       });
-//     }
-
-//     return res.json({
-//       message: "Receipt email sent successfully",
-//     });
-//   } catch (error) {
-//     console.error("💥 [SEND RECEIPT EMAIL ERROR]", {
-//       message: error.message,
-//       stack: error.stack,
-//     });
-
-//     return res.status(500).json({
-//       error: "Failed to send receipt email",
-//     });
-//   }
-// }
 async function uploadReceiptPdf(req, res) {
   try {
     const receipt_id = req.body.receipt_id;
@@ -442,6 +366,117 @@ async function sendReceiptEmailFromDb(req, res) {
     });
   }
 }
+
+
+async function listProducts(req, res) {
+  try {
+    const user_id = req.user?.id;
+    const company_id = req.user?.company_id || req.user?.companyId;
+
+    if (!user_id || !company_id) {
+      return res.status(401).json({ error: "Missing user or company context" });
+    }
+
+    const queryParams = {
+      ...req.query,
+      user_id,
+      company_id,
+    };
+
+    const queryString = new URLSearchParams(queryParams).toString();
+
+    const result = await callOrds(`/products?${queryString}`, {
+      method: "GET",
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error("listProducts error:", error.message);
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
+}
+
+async function createProduct(req, res) {
+  try {
+    const user_id = req.user?.id;
+    const company_id = req.user?.company_id || req.user?.companyId;
+
+    if (!user_id || !company_id) {
+      return res.status(401).json({ error: "Missing user or company context" });
+    }
+
+    const body = {
+      ...req.body,
+      user_id,
+      company_id,
+    };
+
+    const result = await callOrds("/products", {
+      method: "POST",
+      body,
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error("createProduct error:", error.message);
+    res.status(500).json({ error: "Failed to create product" });
+  }
+}
+
+async function updateProduct(req, res) {
+  try {
+    const user_id = req.user?.id;
+    const company_id = req.user?.company_id || req.user?.companyId;
+
+    if (!user_id || !company_id) {
+      return res.status(401).json({ error: "Missing user or company context" });
+    }
+
+    const body = {
+      ...req.body,
+      id: req.params.id,
+      user_id,
+      company_id,
+    };
+
+    const result = await callOrds("/products", {
+      method: "PUT",
+      body,
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error("updateProduct error:", error.message);
+    res.status(500).json({ error: "Failed to update product" });
+  }
+}
+
+async function deactivateProduct(req, res) {
+  try {
+    const user_id = req.user?.id;
+    const company_id = req.user?.company_id || req.user?.companyId;
+
+    if (!user_id || !company_id) {
+      return res.status(401).json({ error: "Missing user or company context" });
+    }
+
+    const body = {
+      id: req.params.id,
+      user_id,
+      company_id,
+    };
+
+    const result = await callOrds("/products", {
+      method: "DELETE",
+      body,
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error("deactivateProduct error:", error.message);
+    res.status(500).json({ error: "Failed to deactivate product" });
+  }
+}
 module.exports = {
   createReceipt,
   listReceipts,
@@ -453,4 +488,8 @@ module.exports = {
   uploadReceiptPdf, // Reusing the same function for simplicity
   sendReceiptEmailFromDb,
   countReceipts,
+  listProducts,
+  createProduct,
+  updateProduct,
+  deactivateProduct,
 };

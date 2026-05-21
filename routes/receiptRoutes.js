@@ -17,7 +17,7 @@ router.post(
   "/uploadLogo",
   authUser,
   upload.single("logo"),
-  receiptController.uploadLogo
+  receiptController.uploadLogo,
 );
 
 // ✅ Upload PDF (FIXED field name)
@@ -25,16 +25,20 @@ router.post(
   "/uploadReceiptPdf",
   authUser,
   upload.single("file"), // 🔥 FIX HERE
-  receiptController.uploadReceiptPdf
+  receiptController.uploadReceiptPdf,
 );
 
 // ✅ Send email from stored PDF
 router.post(
   "/sendReceiptEmailFromDb",
   authUser,
-  receiptController.sendReceiptEmailFromDb
+  receiptController.sendReceiptEmailFromDb,
 );
 
 router.get("/getLogo", authUser, receiptController.getLogo);
+router.get("/products", authUser, receiptController.listProducts);
+router.post("/products", authUser, receiptController.createProduct);
+router.put("/products/:id", authUser, receiptController.updateProduct);
+router.delete("/products/:id", authUser, receiptController.deactivateProduct);
 
 module.exports = router;
