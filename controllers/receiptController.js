@@ -592,7 +592,6 @@ async function importProducts(req, res) {
         error: "Excel file is required",
       });
     }
-
     const workbook = XLSX.read(file.buffer, {
       type: "buffer",
     });
