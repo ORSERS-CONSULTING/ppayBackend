@@ -570,42 +570,85 @@ function getValue(row, keys) {
 
 async function importProducts(req, res) {
   try {
+    console.log("========== IMPORT PRODUCTS START ==========");
+
     const user_id = req.user?.id;
     const company_id = req.user?.company_id || req.user?.companyId;
     const file = req.file;
     const currency_iso = req.body.currency_iso;
 
+    console.log("User:", user_id);
+    console.log("Company:", company_id);
+    console.log("Currency:", currency_iso);
+
     if (!user_id || !company_id) {
+      console.log("Missing user/company context");
+
       return res.status(401).json({
         error: "Missing user or company context",
       });
     }
 
     if (!currency_iso) {
+      console.log("Missing currency");
+
       return res.status(400).json({
         error: "Missing currency",
       });
     }
 
     if (!file) {
+      console.log("No file received");
+
       return res.status(400).json({
         error: "Excel file is required",
       });
     }
+
+    console.log("File received:", {
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+    });
+
     const workbook = XLSX.read(file.buffer, {
       type: "buffer",
     });
 
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    console.log("Workbook sheets:", workbook.SheetNames);
 
-const rows = XLSX.utils.sheet_to_json(sheet, {
-  defval: "",
-});
+    const firstSheetName = workbook.SheetNames[0];
+
+    if (!firstSheetName) {
+      console.log("No sheets found in workbook");
+
+      return res.status(400).json({
+        error: "Excel file contains no sheets",
+      });
+    }
+
+    const sheet = workbook.Sheets[firstSheetName];
+
+    const rows = XLSX.utils.sheet_to_json(sheet, {
+      defval: "",
+    });
+
+    console.log("Rows found:", rows.length);
+
+    console.log(
+      "First 5 rows:",
+      JSON.stringify(rows.slice(0, 5), null, 2)
+    );
+
     let imported = 0;
     const errors = [];
 
     for (const [index, row] of rows.entries()) {
       try {
+        console.log(`========== ROW ${index + 2} ==========`);
+
+        console.log("Raw row:", JSON.stringify(row, null, 2));
+
         const name = getValue(row, [
           "Product Name",
           "product name",
@@ -614,6 +657,7 @@ const rows = XLSX.utils.sheet_to_json(sheet, {
           "Name",
           "name",
         ]);
+
         const description = getValue(row, [
           "Description",
           "description",
@@ -622,17 +666,28 @@ const rows = XLSX.utils.sheet_to_json(sheet, {
           "Product_Description",
           "product_description",
         ]);
-        const price = Number(
-          getValue(row, [
-            "Price",
-            "price",
-            "Unit Price",
-            "unit price",
-            "Unit_Price",
-            "unit_price",
-          ]),
-        );
+
+        const rawPrice = getValue(row, [
+          "Price",
+          "price",
+          "Unit Price",
+          "unit price",
+          "Unit_Price",
+          "unit_price",
+        ]);
+
+        const price = Number(rawPrice);
+
+        console.log("Extracted values:", {
+          name,
+          description,
+          rawPrice,
+          price,
+        });
+
         if (!name) {
+          console.log(`Row ${index + 2}: Missing product name`);
+
           errors.push({
             row: index + 2,
             error: "Missing product name",
@@ -642,6 +697,8 @@ const rows = XLSX.utils.sheet_to_json(sheet, {
         }
 
         if (!Number.isFinite(price) || price <= 0) {
+          console.log(`Row ${index + 2}: Invalid price`);
+
           errors.push({
             row: index + 2,
             error: "Invalid price",
@@ -650,26 +707,47 @@ const rows = XLSX.utils.sheet_to_json(sheet, {
           continue;
         }
 
-        await callOrds("/products", {
+        const ordsPayload = {
+          user_id,
+          company_id,
+          name,
+          description,
+          unit_price: price,
+          currency_iso,
+        };
+
+        console.log(
+          "Sending to ORDS:",
+          JSON.stringify(ordsPayload, null, 2)
+        );
+
+        const ordsResult = await callOrds("/products", {
           method: "POST",
-          body: {
-            user_id,
-            company_id,
-            name,
-            description,
-            unit_price: price,
-            currency_iso: currency_iso,
-          },
+          body: ordsPayload,
         });
+
+        console.log(
+          "ORDS Response:",
+          JSON.stringify(ordsResult, null, 2)
+        );
 
         imported++;
       } catch (err) {
+        console.error(`Row ${index + 2} failed:`, err);
+
         errors.push({
           row: index + 2,
           error: err.message,
         });
       }
     }
+
+    console.log("========== IMPORT COMPLETE ==========");
+    console.log({
+      imported,
+      failed: errors.length,
+      errors,
+    });
 
     return res.json({
       imported,
@@ -681,6 +759,7 @@ const rows = XLSX.utils.sheet_to_json(sheet, {
 
     return res.status(500).json({
       error: "Failed to import products",
+      detail: error.message,
     });
   }
 }
