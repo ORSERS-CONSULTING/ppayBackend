@@ -40,5 +40,10 @@ router.get("/products", authUser, receiptController.listProducts);
 router.post("/products", authUser, receiptController.createProduct);
 router.put("/products/:id", authUser, receiptController.updateProduct);
 router.delete("/products/:id", authUser, receiptController.deactivateProduct);
-
+router.post(
+  "/importProducts",
+  authUser,
+  upload.single("file"),
+  receiptController.importProducts,
+);
 module.exports = router;

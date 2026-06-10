@@ -94,8 +94,7 @@ async function countReceipts(req, res) {
   try {
     const user_id = req.user?.id;
 
-    const company_id =
-      req.user?.company_id || req.user?.companyId;
+    const company_id = req.user?.company_id || req.user?.companyId;
 
     const queryParams = {
       ...req.query,
@@ -399,7 +398,6 @@ async function sendReceiptEmailFromDb(req, res) {
   }
 }
 
-
 async function listProducts(req, res) {
   try {
     const user_id = req.user?.id;
@@ -554,6 +552,138 @@ async function deactivateProduct(req, res) {
     });
   }
 }
+
+const XLSX = require("xlsx");
+function getValue(row, keys) {
+  for (const key of keys) {
+    if (
+      row[key] !== undefined &&
+      row[key] !== null &&
+      String(row[key]).trim() !== ""
+    ) {
+      return row[key];
+    }
+  }
+
+  return null;
+}
+
+async function importProducts(req, res) {
+  try {
+    const user_id = req.user?.id;
+    const company_id = req.user?.company_id || req.user?.companyId;
+    const file = req.file;
+    const currency_iso = req.body.currency_iso;
+
+    if (!user_id || !company_id) {
+      return res.status(401).json({
+        error: "Missing user or company context",
+      });
+    }
+
+    if (!currency_iso) {
+      return res.status(400).json({
+        error: "Missing currency",
+      });
+    }
+
+    if (!file) {
+      return res.status(400).json({
+        error: "Excel file is required",
+      });
+    }
+
+    const workbook = XLSX.read(file.buffer, {
+      type: "buffer",
+    });
+
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+    const rows = XLSX.utils.sheet_to_json(sheet);
+
+    let imported = 0;
+    const errors = [];
+
+    for (const [index, row] of rows.entries()) {
+      try {
+        const name = getValue(row, [
+          "Product Name",
+          "product name",
+          "Product_Name",
+          "product_name",
+          "Name",
+          "name",
+        ]);
+        const description = getValue(row, [
+          "Description",
+          "description",
+          "Product Description",
+          "product description",
+          "Product_Description",
+          "product_description",
+        ]);
+        const price = Number(
+          getValue(row, [
+            "Price",
+            "price",
+            "Unit Price",
+            "unit price",
+            "Unit_Price",
+            "unit_price",
+          ]),
+        );
+        if (!name) {
+          errors.push({
+            row: index + 2,
+            error: "Missing product name",
+          });
+
+          continue;
+        }
+
+        if (!Number.isFinite(price) || price <= 0) {
+          errors.push({
+            row: index + 2,
+            error: "Invalid price",
+          });
+
+          continue;
+        }
+
+        await callOrds("/products", {
+          method: "POST",
+          body: {
+            user_id,
+            company_id,
+            name,
+            description,
+            unit_price: price,
+            currency_iso: currency_iso,
+          },
+        });
+
+        imported++;
+      } catch (err) {
+        errors.push({
+          row: index + 2,
+          error: err.message,
+        });
+      }
+    }
+
+    return res.json({
+      imported,
+      failed: errors.length,
+      errors,
+    });
+  } catch (error) {
+    console.error("importProducts error:", error);
+
+    return res.status(500).json({
+      error: "Failed to import products",
+    });
+  }
+}
 module.exports = {
   createReceipt,
   listReceipts,
@@ -562,11 +692,12 @@ module.exports = {
   getPublicReceipt,
   uploadLogo,
   getLogo,
-  uploadReceiptPdf, // Reusing the same function for simplicity
+  uploadReceiptPdf,
   sendReceiptEmailFromDb,
   countReceipts,
   listProducts,
   createProduct,
   updateProduct,
   deactivateProduct,
+  importProducts,
 };
