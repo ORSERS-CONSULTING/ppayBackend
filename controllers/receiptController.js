@@ -599,8 +599,9 @@ async function importProducts(req, res) {
 
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-    const rows = XLSX.utils.sheet_to_json(sheet);
-
+const rows = XLSX.utils.sheet_to_json(sheet, {
+  defval: "",
+});
     let imported = 0;
     const errors = [];
 
