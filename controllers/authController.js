@@ -62,6 +62,16 @@ async function login(req, res) {
     const refresh_token = crypto.randomBytes(64).toString("hex");
     const token_hash = hashToken(refresh_token);
 
+    console.log("🔁 [LOGIN] Revoking existing tokens for device...");
+
+    await callOrds("/authTokens/revokeByUserDevice", {
+      method: "POST",
+      body: JSON.stringify({
+        user_id: Number(userId),
+        device_id,
+      }),
+    });
+
     console.log("🔁 [LOGIN] Creating refresh token...");
 
     await callOrds("/authTokens/create", {
@@ -171,9 +181,7 @@ async function refresh(req, res) {
     const userId = result.user_id;
 
     const companyId =
-      result.company_id ||
-      result.out_company_id ||
-      result.outCompanyId;
+      result.company_id || result.out_company_id || result.outCompanyId;
 
     if (!companyId) {
       console.error("❌ [REFRESH] Missing company_id from ORDS:", result);
