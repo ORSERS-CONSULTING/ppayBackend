@@ -276,17 +276,31 @@ async function sendOtp(req, res) {
       return res.status(400).json({ error: "Email required" });
     }
 
-    await callOrds("/sendOtp", {
+    console.log("📧 Sending OTP to:", email);
+
+    const response = await callOrds("/sendOtp", {
       method: "POST",
       body: JSON.stringify({ email }),
     });
+
+    console.log("✅ ORDS sendOtp response:", response);
 
     return res.json({
       message: "If account exists, OTP sent",
     });
   } catch (error) {
-    console.error("sendOtp error:", error.message);
-    res.status(500).json({ error: "Failed to send OTP" });
+    console.error("❌ sendOtp failed:", error.message);
+
+    if (error.response?.data) {
+      console.error(
+        "❌ ORDS response:",
+        error.response.data
+      );
+    }
+
+    return res.status(500).json({
+      error: "Failed to send OTP",
+    });
   }
 }
 async function verifyOtp(req, res) {
