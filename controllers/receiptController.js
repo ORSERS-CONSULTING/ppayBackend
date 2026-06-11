@@ -449,9 +449,18 @@ async function createProduct(req, res) {
 
     res.json(result);
   } catch (error) {
-    console.error("createProduct error:", error.message);
-    res.status(500).json({ error: "Failed to create product" });
+  console.error("createProduct error:", error.message);
+
+  if (error.response) {
+    return res.status(error.response.status).json(
+      error.response.data
+    );
   }
+
+  return res.status(500).json({
+    error: "Failed to create product",
+  });
+}
 }
 
 async function updateProduct(req, res) {
