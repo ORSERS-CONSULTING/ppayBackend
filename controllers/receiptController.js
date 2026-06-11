@@ -427,24 +427,34 @@ async function listProducts(req, res) {
 }
 
 async function createProduct(req, res) {
+  try {
+    const user_id = req.user?.id;
+    const company_id = req.user?.company_id || req.user?.companyId;
+
+    if (!user_id || !company_id) {
+      return res.status(401).json({ error: "Missing user or company context" });
+    }
+    const body = {
+      ...req.body,
+      user_id,
+      company_id,
+    };
+
+    const result = await callOrds("/products", {
+      method: "POST",
+      body,
+    });
+
 const result = await callOrds("/products", {
-  method: "POST",
-  body,
-});
+      method: "POST",
+      body,
+    });
 
-if (result.response_message === "product_name_exists") {
-  return res.status(400).json({
-    message: "A product with this name already exists.",
-  });
-}
-
-if (result.response_message !== "OK") {
-  return res.status(500).json({
-    message: "Failed to create product.",
-  });
-}
-
-return res.json(result);
+    res.json(result);
+  } catch (error) {
+    console.error("createProduct error:", error.message);
+    res.status(500).json({ error: "Failed to create product" });
+  }
 }
 
 async function updateProduct(req, res) {
