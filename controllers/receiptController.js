@@ -445,10 +445,7 @@ async function createProduct(req, res) {
       body,
     });
 
-const result = await callOrds("/products", {
-      method: "POST",
-      body,
-    });
+
 
     res.json(result);
   } catch (error) {
