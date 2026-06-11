@@ -48,14 +48,23 @@ async function callOrds(endpoint, options = {}) {
     data = text ? { raw: text } : {};
   }
 
-  // 6. Error handling
-  if (!response.ok) {
-    console.log("❌ ORDS STATUS:", response.status);
-    console.log("❌ ORDS RESPONSE:", data);
+ if (!response.ok) {
+  console.log("❌ ORDS STATUS:", response.status);
+  console.log("❌ ORDS RESPONSE:", data);
 
-    throw new Error(`ORDS ${response.status}`);
-  }
+  const error = new Error(
+    data?.error ||
+    data?.message ||
+    `ORDS ${response.status}`
+  );
 
+  error.response = {
+    status: response.status,
+    data,
+  };
+
+  throw error;
+}
   return data;
 }
 

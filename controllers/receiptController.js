@@ -448,29 +448,9 @@ async function createProduct(req, res) {
 
     res.json(result);
   } catch (error) {
-  console.error(
-    "createProduct error:",
-    error.response?.data ||
-      error.upstream?.data ||
-      error.message
-  );
-
-  const message =
-    error.response?.data?.error ||
-    error.response?.data?.message ||
-    error.upstream?.data?.error ||
-    error.upstream?.data?.message ||
-    error.message ||
-    "Failed to create product";
-
-  res.status(
-    error.response?.status ||
-      error.upstream?.status ||
-      500
-  ).json({
-    error: message,
-  });
-}
+    console.error("createProduct error:", error.message);
+    res.status(500).json({ error: "Failed to create product" });
+  }
 }
 
 async function updateProduct(req, res) {
