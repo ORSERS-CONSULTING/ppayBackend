@@ -447,34 +447,19 @@ async function createProduct(req, res) {
     });
 
     res.json(result);
-  } catch (error) {
-  const rawError =
-    error.response?.data?.error ||
-    error.response?.data?.message ||
-    error.message ||
-    "";
-
+  }catch (error) {
   console.error(
     "createProduct error:",
     error.response?.data || error.message
   );
 
-  let userMessage = "Failed to create product.";
-
-  if (
-    rawError.includes("UQ_PRODUCTS_COMPANY_NAME") ||
-    rawError.includes("ORA-00001") ||
-    rawError.toLowerCase().includes("already exists")
-  ) {
-    userMessage =
-      "A product with this name already exists. Please choose a different name.";
-  }
-
   return res.status(
     error.response?.status || 500
-  ).json({
-    error: userMessage,
-  });
+  ).json(
+    error.response?.data || {
+      error: error.message,
+    }
+  );
 }
 }
 
