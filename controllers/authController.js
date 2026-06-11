@@ -307,53 +307,87 @@ async function verifyOtp(req, res) {
   try {
     const { email, otp_code } = req.body;
 
-    console.log("🔐 [VERIFY OTP] Incoming request:", {
+    console.log("🔐 [VERIFY OTP] Request:", {
       email,
       otp_code,
     });
 
     if (!email || !otp_code) {
-      console.warn("⚠️ [VERIFY OTP] Missing data", { email, otp_code });
-      return res.status(400).json({ error: "Missing data" });
+      console.warn("⚠️ [VERIFY OTP] Missing data");
+      return res.status(400).json({
+        error: "Missing data",
+      });
     }
+
+    const payload = {
+      email,
+      otp_code,
+    };
+
+    console.log(
+      "📤 [VERIFY OTP] Sending to ORDS:",
+      payload
+    );
 
     const result = await callOrds("/verifyOtp", {
       method: "POST",
-      body: JSON.stringify({ email, otp_code }),
+      body: JSON.stringify(payload),
     });
 
     console.log(
-      "📦 [VERIFY OTP] ORDS raw response:",
-      JSON.stringify(result, null, 2),
+      "📥 [VERIFY OTP] ORDS Response:",
+      result
+    );
+
+    console.log(
+      "📥 [VERIFY OTP] verification_status:",
+      result?.verification_status
+    );
+
+    console.log(
+      "📥 [VERIFY OTP] items[0]?.verification_status:",
+      result?.items?.[0]?.verification_status
     );
 
     const verificationStatus =
-      result?.verification_status || result?.items?.[0]?.verification_status;
-
-    console.log("🔎 [VERIFY OTP] Parsed status:", verificationStatus);
+      result?.verification_status ||
+      result?.items?.[0]?.verification_status;
 
     if (verificationStatus !== "VERIFIED") {
-      console.warn("❌ [VERIFY OTP] Invalid OTP", {
-        email,
-        otp_code,
-        verificationStatus,
-      });
+      console.warn(
+        "❌ [VERIFY OTP] Verification failed:",
+        verificationStatus
+      );
 
       return res.status(400).json({
         error: "Invalid or expired OTP",
       });
     }
 
-    console.log("✅ [VERIFY OTP] Success", { email });
+    console.log("✅ [VERIFY OTP] Verified");
 
-    return res.json({ verification_status: "VERIFIED" });
-  } catch (error) {
-    console.error("💥 [VERIFY OTP ERROR]", {
-      message: error.message,
-      stack: error.stack,
+    return res.json({
+      verification_status: "VERIFIED",
     });
+  } catch (error) {
+    console.error("💥 [VERIFY OTP ERROR]");
+    console.error("Message:", error.message);
 
-    res.status(500).json({ error: "OTP verification failed" });
+    if (error.response) {
+      console.error(
+        "Status:",
+        error.response.status
+      );
+
+      console.error(
+        "Response:",
+        error.response.data
+      );
+    }
+
+    return res.status(500).json({
+      error: "OTP verification failed",
+    });
   }
 }
 async function resetPassword(req, res) {
