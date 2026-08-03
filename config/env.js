@@ -19,8 +19,8 @@ async function loadConfig() {
     // Non-secret config
     ORDS_BASE_URL: process.env.ORDS_BASE_URL,
     ORDS_TOKEN_URL: process.env.ORDS_TOKEN_URL,
-    REFRESH_TOKEN_DAYS: process.env.REFRESH_TOKEN_DAYS || "7",
-
+    REFRESH_TOKEN_DAYS: process.env.REFRESH_TOKEN_DAYS,
+    ACCESS_TOKEN_TTL: process.env.ACCESS_TOKEN_TTL,
     // Secrets (Vault-backed)
     ORDS_CLIENT_ID: await required(
       "ORDS_CLIENT_ID",
