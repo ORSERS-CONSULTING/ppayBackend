@@ -15,4 +15,5 @@ router.post(
   receiptController.uploadLogo,
 );
 router.get("/getLogo", receiptController.getLogo);
+router.patch("/", authUser, receiptController.updateProfile);
 module.exports = router;

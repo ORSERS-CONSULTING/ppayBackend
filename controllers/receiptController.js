@@ -191,6 +191,53 @@ async function getLogo(req, res) {
     res.status(500).json({ error: "Failed to fetch logo" });
   }
 }
+
+
+async function updateProfile(req, res) {
+  try {
+    const user_id = req.user?.id;
+
+    if (!user_id) {
+      return res.status(401).json({
+        success: false,
+        error: "Unauthorized",
+      });
+    }
+
+    const profileUpdates = {};
+
+    for (const field of ALLOWED_PROFILE_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+        profileUpdates[field] = req.body[field];
+      }
+    }
+
+    if (Object.keys(profileUpdates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "No profile fields were provided",
+      });
+    }
+
+    const result = await callOrds("/profile", {
+      method: "PATCH",
+      body: JSON.stringify({
+        ...profileUpdates,
+        user_id,
+      }),
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("updateProfile error:", error.message);
+
+    return res.status(error.status || 500).json({
+      success: false,
+      error: error.ordsData?.message || "Failed to update profile",
+    });
+  }
+}
+
 module.exports = {
   createReceipt,
   listReceipts,
@@ -199,4 +246,5 @@ module.exports = {
   getPublicReceipt,
   uploadLogo,
   getLogo,
+  updateProfile,
 };
