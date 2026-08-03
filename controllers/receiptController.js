@@ -819,6 +819,7 @@ async function updateProfile(req, res) {
     if (!user_id) {
       return res.status(401).json({
         success: false,
+        code: "SESSION_EXPIRED",
         error: "Unauthorized",
       });
     }
@@ -826,7 +827,12 @@ async function updateProfile(req, res) {
     const profileUpdates = {};
 
     for (const field of ALLOWED_PROFILE_FIELDS) {
-      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+      if (
+        Object.prototype.hasOwnProperty.call(
+          req.body,
+          field,
+        )
+      ) {
         profileUpdates[field] = req.body[field];
       }
     }
@@ -838,27 +844,58 @@ async function updateProfile(req, res) {
       });
     }
 
+    const ordsBody = {
+      ...profileUpdates,
+      user_id,
+    };
+
+    console.log("========== PROFILE UPDATE ==========");
+    console.log({
+      user_id,
+      receivedFields: Object.keys(req.body),
+      allowedFields: Object.keys(profileUpdates),
+      ordsBody,
+    });
+
     const result = await callOrds("/profile", {
       method: "PUT",
-      body: {
-        ...profileUpdates,
-        user_id,
-      },
+      body: ordsBody,
     });
+
+    console.log(
+      "PROFILE UPDATE ORDS RESULT:",
+      JSON.stringify(result, null, 2),
+    );
 
     return res.json(result);
   } catch (error) {
-    console.error("updateProfile error:", error.message);
+    const status =
+      error.response?.status || 500;
 
-    return res.status(error.status || 500).json({
+    const ordsData =
+      error.response?.data || null;
+
+    console.error("updateProfile ORDS error:", {
+      message: error.message,
+      status,
+      ordsData,
+    });
+
+    return res.status(
+      status >= 400 && status < 600
+        ? status
+        : 500,
+    ).json({
       success: false,
       error:
-        error.ordsData?.message ||
-        error.ordsData?.error ||
+        ordsData?.message ||
+        ordsData?.error ||
+        ordsData?.raw ||
         "Failed to update profile",
     });
   }
 }
+
 module.exports = {
   createReceipt,
   listReceipts,
