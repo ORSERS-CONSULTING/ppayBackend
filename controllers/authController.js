@@ -55,11 +55,22 @@ async function login(req, res) {
 
     const access_token = signAccessToken({
       sub: String(userId),
+      company_id: result.out_company_id, // 🔥 comes from ORDS
       role: "user",
     });
 
     const refresh_token = crypto.randomBytes(64).toString("hex");
     const token_hash = hashToken(refresh_token);
+
+    console.log("🔁 [LOGIN] Revoking existing tokens for device...");
+
+    await callOrds("/authTokens/revokeByUserDevice", {
+      method: "POST",
+      body: JSON.stringify({
+        user_id: Number(userId),
+        device_id,
+      }),
+    });
 
     console.log("🔁 [LOGIN] Creating refresh token...");
 
@@ -110,7 +121,7 @@ async function register(req, res) {
 
     const payload = {
       ...rest,
-      user_email,                     // ✅ FIX
+      user_email, // ✅ FIX
       password_hash: hashedPassword, // ✅ FIX
     };
 
@@ -124,7 +135,10 @@ async function register(req, res) {
       body: JSON.stringify(payload),
     });
 
-    console.log("📥 [REGISTER] ORDS response:", JSON.stringify(result, null, 2));
+    console.log(
+      "📥 [REGISTER] ORDS response:",
+      JSON.stringify(result, null, 2),
+    );
 
     return res.json(result);
   } catch (error) {
@@ -158,13 +172,24 @@ async function refresh(req, res) {
       }),
     });
 
+    console.log("🔁 [REFRESH] ORDS validate result:", result);
+
     if (!result?.user_id) {
       return res.status(401).json({ error: "Invalid refresh token" });
     }
 
     const userId = result.user_id;
 
-    // 🔁 OPTIONAL (Recommended): Rotate refresh token
+    const companyId =
+      result.company_id || result.out_company_id || result.outCompanyId;
+
+    if (!companyId) {
+      console.error("❌ [REFRESH] Missing company_id from ORDS:", result);
+      return res.status(401).json({
+        error: "Missing company context",
+      });
+    }
+
     await callOrds("/authTokens/revoke", {
       method: "POST",
       body: JSON.stringify({ token_hash, device_id }),
@@ -185,6 +210,7 @@ async function refresh(req, res) {
 
     const access_token = signAccessToken({
       sub: String(userId),
+      company_id: companyId,
       role: "user",
     });
 
@@ -197,7 +223,6 @@ async function refresh(req, res) {
     res.status(500).json({ error: "Refresh failed" });
   }
 }
-
 
 async function logout(req, res) {
   try {
@@ -236,14 +261,12 @@ async function deleteAccount(req, res) {
   } catch (error) {
     // console.error("==== DELETE ACCOUNT ERROR ====");
     // console.error("Message:", error);
-
     // res.status(500).json({
     //   error: "Account deletion failed",
     //   details: error.response?.data || error.message,
     // });
   }
 }
-
 
 async function sendOtp(req, res) {
   try {
@@ -253,68 +276,118 @@ async function sendOtp(req, res) {
       return res.status(400).json({ error: "Email required" });
     }
 
-    await callOrds("/sendOtp", {
+    console.log("📧 Sending OTP to:", email);
+
+    const response = await callOrds("/sendOtp", {
       method: "POST",
       body: JSON.stringify({ email }),
     });
+
+    console.log("✅ ORDS sendOtp response:", response);
 
     return res.json({
       message: "If account exists, OTP sent",
     });
   } catch (error) {
-    console.error("sendOtp error:", error.message);
-    res.status(500).json({ error: "Failed to send OTP" });
+    console.error("❌ sendOtp failed:", error.message);
+
+    if (error.response?.data) {
+      console.error(
+        "❌ ORDS response:",
+        error.response.data
+      );
+    }
+
+    return res.status(500).json({
+      error: "Failed to send OTP",
+    });
   }
 }
 async function verifyOtp(req, res) {
   try {
     const { email, otp_code } = req.body;
 
-    console.log("🔐 [VERIFY OTP] Incoming request:", {
+    console.log("🔐 [VERIFY OTP] Request:", {
       email,
       otp_code,
     });
 
     if (!email || !otp_code) {
-      console.warn("⚠️ [VERIFY OTP] Missing data", { email, otp_code });
-      return res.status(400).json({ error: "Missing data" });
+      console.warn("⚠️ [VERIFY OTP] Missing data");
+      return res.status(400).json({
+        error: "Missing data",
+      });
     }
+
+    const payload = {
+      email,
+      otp_code,
+    };
+
+    console.log(
+      "📤 [VERIFY OTP] Sending to ORDS:",
+      payload
+    );
 
     const result = await callOrds("/verifyOtp", {
       method: "POST",
-      body: JSON.stringify({ email, otp_code }),
+      body: JSON.stringify(payload),
     });
 
-    console.log("📦 [VERIFY OTP] ORDS raw response:", JSON.stringify(result, null, 2));
+    console.log(
+      "📥 [VERIFY OTP] ORDS Response:",
+      result
+    );
+
+    console.log(
+      "📥 [VERIFY OTP] verification_status:",
+      result?.verification_status
+    );
+
+    console.log(
+      "📥 [VERIFY OTP] items[0]?.verification_status:",
+      result?.items?.[0]?.verification_status
+    );
 
     const verificationStatus =
       result?.verification_status ||
       result?.items?.[0]?.verification_status;
 
-    console.log("🔎 [VERIFY OTP] Parsed status:", verificationStatus);
-
     if (verificationStatus !== "VERIFIED") {
-      console.warn("❌ [VERIFY OTP] Invalid OTP", {
-        email,
-        otp_code,
-        verificationStatus,
-      });
+      console.warn(
+        "❌ [VERIFY OTP] Verification failed:",
+        verificationStatus
+      );
 
       return res.status(400).json({
         error: "Invalid or expired OTP",
       });
     }
 
-    console.log("✅ [VERIFY OTP] Success", { email });
+    console.log("✅ [VERIFY OTP] Verified");
 
-    return res.json({ verification_status: "VERIFIED" });
-  } catch (error) {
-    console.error("💥 [VERIFY OTP ERROR]", {
-      message: error.message,
-      stack: error.stack,
+    return res.json({
+      verification_status: "VERIFIED",
     });
+  } catch (error) {
+    console.error("💥 [VERIFY OTP ERROR]");
+    console.error("Message:", error.message);
 
-    res.status(500).json({ error: "OTP verification failed" });
+    if (error.response) {
+      console.error(
+        "Status:",
+        error.response.status
+      );
+
+      console.error(
+        "Response:",
+        error.response.data
+      );
+    }
+
+    return res.status(500).json({
+      error: "OTP verification failed",
+    });
   }
 }
 async function resetPassword(req, res) {
@@ -346,8 +419,7 @@ async function resetPassword(req, res) {
     console.log("📥 [RESET] ORDS response:", JSON.stringify(result, null, 2));
 
     const responseMessage =
-      result?.response_message ||
-      result?.items?.[0]?.response_message;
+      result?.response_message || result?.items?.[0]?.response_message;
 
     console.log("🔎 [RESET] Parsed response:", responseMessage);
 
@@ -371,4 +443,13 @@ async function resetPassword(req, res) {
   }
 }
 
-module.exports = { login, register, refresh, logout, deleteAccount, sendOtp, verifyOtp, resetPassword };
+module.exports = {
+  login,
+  register,
+  refresh,
+  logout,
+  deleteAccount,
+  sendOtp,
+  verifyOtp,
+  resetPassword,
+};
