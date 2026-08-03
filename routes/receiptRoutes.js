@@ -1,51 +1,144 @@
 const express = require("express");
-const router = express.Router();
-const receiptController = require("../controllers/receiptController");
-const { authUser } = require("../middleware/authMiddleware");
 const multer = require("multer");
 
-const upload = multer({ storage: multer.memoryStorage() });
+const router = express.Router();
 
-// Core
-router.post("/receipts", authUser, receiptController.createReceipt);
-router.get("/receipts", authUser, receiptController.listReceipts);
-router.get("/receiptDetails", authUser, receiptController.getReceiptDetails);
-router.post("/voidReceipt", authUser, receiptController.voidReceipt);
-router.get("/countReceipts", authUser, receiptController.countReceipts);
-// Logo
+const receiptController = require("../controllers/receiptController");
+const { authUser } = require("../middleware/authMiddleware");
+const {
+  requireCompany,
+} = require("../middleware/companyMiddleware");
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+});
+
+/*
+ * Receipts
+ */
+router.post(
+  "/receipts",
+  authUser,
+  requireCompany,
+  receiptController.createReceipt,
+);
+
+router.get(
+  "/receipts",
+  authUser,
+  requireCompany,
+  receiptController.listReceipts,
+);
+
+router.get(
+  "/receiptDetails",
+  authUser,
+  requireCompany,
+  receiptController.getReceiptDetails,
+);
+
+router.post(
+  "/voidReceipt",
+  authUser,
+  requireCompany,
+  receiptController.voidReceipt,
+);
+
+router.get(
+  "/countReceipts",
+  authUser,
+  requireCompany,
+  receiptController.countReceipts,
+);
+
+/*
+ * Company logo
+ */
 router.post(
   "/uploadLogo",
   authUser,
+  requireCompany,
   upload.single("logo"),
   receiptController.uploadLogo,
 );
-router.get("/getLogo", receiptController.getLogo);
-router.patch("/", authUser, receiptController.updateProfile);
 
-// ✅ Upload PDF (FIXED field name)
+router.get(
+  "/getLogo",
+  authUser,
+  requireCompany,
+  receiptController.getLogo,
+);
+
+/*
+ * Profile
+ *
+ * This route only needs the authenticated user.
+ * Your ORDS profile endpoint resolves the company using user_id.
+ */
+router.patch(
+  "/",
+  authUser,
+  receiptController.updateProfile,
+);
+
+/*
+ * Receipt PDF
+ */
 router.post(
   "/uploadReceiptPdf",
   authUser,
-  upload.single("file"), // 🔥 FIX HERE
+  requireCompany,
+  upload.single("file"),
   receiptController.uploadReceiptPdf,
 );
 
-// ✅ Send email from stored PDF
+/*
+ * Receipt email
+ */
 router.post(
   "/sendReceiptEmailFromDb",
   authUser,
+  requireCompany,
   receiptController.sendReceiptEmailFromDb,
 );
 
-router.get("/getLogo", authUser, receiptController.getLogo);
-router.get("/products", authUser, receiptController.listProducts);
-router.post("/products", authUser, receiptController.createProduct);
-router.put("/products/:id", authUser, receiptController.updateProduct);
-router.delete("/products/:id", authUser, receiptController.deactivateProduct);
+/*
+ * Products
+ */
+router.get(
+  "/products",
+  authUser,
+  requireCompany,
+  receiptController.listProducts,
+);
+
+router.post(
+  "/products",
+  authUser,
+  requireCompany,
+  receiptController.createProduct,
+);
+
+router.put(
+  "/products/:id",
+  authUser,
+  requireCompany,
+  receiptController.updateProduct,
+);
+
+router.delete(
+  "/products/:id",
+  authUser,
+  requireCompany,
+  receiptController.deactivateProduct,
+);
+
 router.post(
   "/importProducts",
   authUser,
+  requireCompany,
   upload.single("file"),
   receiptController.importProducts,
 );
+
 module.exports = router;

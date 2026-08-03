@@ -10,7 +10,7 @@ async function createReceipt(req, res) {
     console.log(req.body);
 
     const user_id = req.user?.id;
-    const company_id = req.user?.company_id || req.user?.companyId;
+    const company_id = req.user?.company_id;
 
     if (!user_id || !company_id) {
       console.log("========== CREATE RECEIPT MISSING CONTEXT ==========");
@@ -94,7 +94,7 @@ async function countReceipts(req, res) {
   try {
     const user_id = req.user?.id;
 
-    const company_id = req.user?.company_id || req.user?.companyId;
+    const company_id = req.user?.company_id;
 
     const queryParams = {
       ...req.query,
@@ -131,7 +131,7 @@ async function getReceiptDetails(req, res) {
     console.log(req.user);
 
     // support both camelCase and snake_case
-    const company_id = req.user?.company_id || req.user?.companyId;
+    const company_id = req.user?.company_id;
 
     const { receipt_no, short_code, receipt_id } = req.query;
 
@@ -277,7 +277,7 @@ async function uploadLogo(req, res) {
 }
 async function getLogo(req, res) {
   try {
-    const company_id = req.user?.company_id || req.query.company_id;
+    const company_id = req.user?.company_id;
 
     if (!company_id) {
       return res.status(400).json({ error: "Missing company id" });
@@ -311,6 +311,7 @@ async function uploadReceiptPdf(req, res) {
   try {
     const receipt_id = req.body.receipt_id;
     const company_id = req.user?.company_id;
+
     const file = req.file;
 
     if (!receipt_id || !company_id || !file) {
@@ -401,7 +402,7 @@ async function sendReceiptEmailFromDb(req, res) {
 async function listProducts(req, res) {
   try {
     const user_id = req.user?.id;
-    const company_id = req.user?.company_id || req.user?.companyId;
+    const company_id = req.user?.company_id;
 
     if (!user_id || !company_id) {
       return res.status(401).json({ error: "Missing user or company context" });
@@ -429,7 +430,7 @@ async function listProducts(req, res) {
 async function createProduct(req, res) {
   try {
     const user_id = req.user?.id;
-    const company_id = req.user?.company_id || req.user?.companyId;
+    const company_id = req.user?.company_id;
 
     if (!user_id || !company_id) {
       return res.status(401).json({ error: "Missing user or company context" });
@@ -449,18 +450,18 @@ async function createProduct(req, res) {
 
     res.json(result);
   } catch (error) {
-  console.error("createProduct error:", error.message);
+    console.error("createProduct error:", error.message);
 
-  if (error.response) {
-    return res.status(error.response.status).json(
-      error.response.data
-    );
+    if (error.response) {
+      return res.status(error.response.status).json(
+        error.response.data
+      );
+    }
+
+    return res.status(500).json({
+      error: "Failed to create product",
+    });
   }
-
-  return res.status(500).json({
-    error: "Failed to create product",
-  });
-}
 }
 
 async function updateProduct(req, res) {
@@ -475,7 +476,7 @@ async function updateProduct(req, res) {
     console.log(req.body);
 
     const user_id = req.user?.id;
-    const company_id = req.user?.company_id || req.user?.companyId;
+    const company_id = req.user?.company_id;
 
     if (!user_id || !company_id) {
       console.log("========== UPDATE PRODUCT MISSING CONTEXT ==========");
@@ -524,7 +525,7 @@ async function deactivateProduct(req, res) {
     console.log(req.params);
 
     const user_id = req.user?.id;
-    const company_id = req.user?.company_id || req.user?.companyId;
+    const company_id = req.user?.company_id;
 
     if (!user_id || !company_id) {
       console.log("========== DEACTIVATE PRODUCT MISSING CONTEXT ==========");
@@ -583,7 +584,7 @@ async function importProducts(req, res) {
     console.log("========== IMPORT PRODUCTS START ==========");
 
     const user_id = req.user?.id;
-    const company_id = req.user?.company_id || req.user?.companyId;
+    const company_id = req.user?.company_id;
     const file = req.file;
     const currency_iso = req.body.currency_iso;
 
@@ -770,6 +771,54 @@ async function importProducts(req, res) {
     return res.status(500).json({
       error: "Failed to import products",
       detail: error.message,
+    });
+  }
+}
+
+async function updateProfile(req, res) {
+  try {
+    const user_id = req.user?.id;
+
+    if (!user_id) {
+      return res.status(401).json({
+        success: false,
+        error: "Unauthorized",
+      });
+    }
+
+    const profileUpdates = {};
+
+    for (const field of ALLOWED_PROFILE_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+        profileUpdates[field] = req.body[field];
+      }
+    }
+
+    if (Object.keys(profileUpdates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "No profile fields were provided",
+      });
+    }
+
+    const result = await callOrds("/profile", {
+      method: "PATCH",
+      body: JSON.stringify({
+        ...profileUpdates,
+        user_id,
+      }),
+    });
+
+    return res.json(result);
+  } catch (error) {
+    console.error("updateProfile error:", error.message);
+
+    return res.status(error.status || 500).json({
+      success: false,
+      error:
+        error.ordsData?.message ||
+        error.ordsData?.error ||
+        "Failed to update profile",
     });
   }
 }
