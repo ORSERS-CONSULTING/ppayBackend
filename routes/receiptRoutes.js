@@ -76,7 +76,7 @@ router.get(
  * Your ORDS profile endpoint resolves the company using user_id.
  */
 router.patch(
-  "/",
+  "/profile",
   authUser,
   receiptController.updateProfile,
 );
