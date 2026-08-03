@@ -73,44 +73,114 @@ async function createReceipt(req, res) {
 async function listReceipts(req, res) {
   try {
     const user_id = req.user?.id;
+    const company_id =
+      req.user?.company_id;
 
-    // Safe pagination defaults
-    const offset = Math.max(0, Number(req.query.offset || 0));
+    if (!user_id) {
+      return res.status(401).json({
+        success: false,
+        code: "SESSION_EXPIRED",
+        error: "Unauthorized",
+      });
+    }
 
-    const limit = Math.min(Math.max(1, Number(req.query.limit || 50)), 100);
+    if (!company_id) {
+      return res.status(403).json({
+        success: false,
+        code: "COMPANY_CONTEXT_MISSING",
+        error:
+          "No company is linked to this account",
+      });
+    }
+
+    const offset = Math.max(
+      0,
+      Number(req.query.offset || 0),
+    );
+
+    const limit = Math.min(
+      Math.max(
+        1,
+        Number(req.query.limit || 20),
+      ),
+      100,
+    );
 
     const queryParams = {
       ...req.query,
 
-      // force secure values
+      // Secure values from JWT/backend context
+      company_id,
       user_id,
 
-      // sanitized pagination
       offset,
       limit,
     };
 
-    const queryString = new URLSearchParams(queryParams).toString();
+    const sanitizedParams =
+      Object.fromEntries(
+        Object.entries(
+          queryParams,
+        ).filter(
+          ([, value]) =>
+            value !== undefined &&
+            value !== null &&
+            value !== "",
+        ),
+      );
 
-    console.log("========== LIST PARAMS ==========");
-    console.log(queryParams);
+    const queryString =
+      new URLSearchParams(
+        sanitizedParams,
+      ).toString();
 
-    console.log("========== FINAL ORDS URL ==========");
-    console.log(`/receipts?${queryString}`);
+    console.log(
+      "========== LIST RECEIPTS req.user ==========",
+    );
+    console.log(req.user);
 
-    const result = await callOrds(`/receipts?${queryString}`, {
-      method: "GET",
-    });
+    console.log(
+      "========== LIST RECEIPTS PARAMS ==========",
+    );
+    console.log(sanitizedParams);
 
-    res.json(result);
+    console.log(
+      "========== FINAL ORDS URL ==========",
+    );
+    console.log(
+      `/receipts?${queryString}`,
+    );
+
+    const result = await callOrds(
+      `/receipts?${queryString}`,
+      {
+        method: "GET",
+      },
+    );
+
+    console.log(
+      "========== LIST RECEIPTS ORDS RESULT ==========",
+    );
+    console.log(
+      JSON.stringify(result, null, 2),
+    );
+
+    return res.json(result);
   } catch (error) {
-    console.error("listReceipts error:", error);
+    console.error(
+      "listReceipts error:",
+      error,
+    );
 
-    res.status(500).json({
-      error: "Failed to fetch receipts",
+    return res.status(500).json({
+      success: false,
+      error:
+        "Failed to fetch receipts",
+      detail: error.message,
     });
   }
 }
+
 async function countReceipts(req, res) {
   try {
     const user_id = req.user?.id;
