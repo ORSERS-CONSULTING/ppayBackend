@@ -1,5 +1,18 @@
 const { callOrds } = require("../services/ordsService");
 const { getOrdsAccessToken } = require("../services/oauthService");
+const ALLOWED_PROFILE_FIELDS = [
+  "full_name",
+  "email",
+  "phone",
+  "company_name",
+  "address_line1",
+  "address_line2",
+  "city",
+  "currency_iso",
+  "tax_number",
+  "default_vat",
+  "logo_url",
+];
 
 async function createReceipt(req, res) {
   try {
@@ -12,14 +25,22 @@ async function createReceipt(req, res) {
     const user_id = req.user?.id;
     const company_id = req.user?.company_id;
 
-    if (!user_id || !company_id) {
-      console.log("========== CREATE RECEIPT MISSING CONTEXT ==========");
-      console.log({ user_id, company_id });
-
+    if (!user_id) {
       return res.status(401).json({
-        error: "Missing user or company context",
+        success: false,
+        code: "SESSION_EXPIRED",
+        error: "Unauthorized",
       });
     }
+
+    if (!company_id) {
+      return res.status(403).json({
+        success: false,
+        code: "COMPANY_CONTEXT_MISSING",
+        error: "No company is linked to this account",
+      });
+    }
+
 
     const body = {
       ...req.body,
@@ -466,26 +487,25 @@ async function createProduct(req, res) {
 
 async function updateProduct(req, res) {
   try {
-    console.log("========== UPDATE PRODUCT req.user ==========");
-    console.log(req.user);
-
-    console.log("========== UPDATE PRODUCT params ==========");
-    console.log(req.params);
-
-    console.log("========== UPDATE PRODUCT incoming body ==========");
-    console.log(req.body);
-
     const user_id = req.user?.id;
     const company_id = req.user?.company_id;
 
-    if (!user_id || !company_id) {
-      console.log("========== UPDATE PRODUCT MISSING CONTEXT ==========");
-      console.log({ user_id, company_id });
-
+    if (!user_id) {
       return res.status(401).json({
-        error: "Missing user or company context",
+        success: false,
+        code: "SESSION_EXPIRED",
+        error: "Unauthorized",
       });
     }
+
+    if (!company_id) {
+      return res.status(403).json({
+        success: false,
+        code: "COMPANY_CONTEXT_MISSING",
+        error: "No company is linked to this account",
+      });
+    }
+
 
     const body = {
       ...req.body,
@@ -527,14 +547,22 @@ async function deactivateProduct(req, res) {
     const user_id = req.user?.id;
     const company_id = req.user?.company_id;
 
-    if (!user_id || !company_id) {
-      console.log("========== DEACTIVATE PRODUCT MISSING CONTEXT ==========");
-      console.log({ user_id, company_id });
-
+    if (!user_id) {
       return res.status(401).json({
-        error: "Missing user or company context",
+        success: false,
+        code: "SESSION_EXPIRED",
+        error: "Unauthorized",
       });
     }
+
+    if (!company_id) {
+      return res.status(403).json({
+        success: false,
+        code: "COMPANY_CONTEXT_MISSING",
+        error: "No company is linked to this account",
+      });
+    }
+
 
     const body = {
       id: req.params.id,
@@ -592,13 +620,22 @@ async function importProducts(req, res) {
     console.log("Company:", company_id);
     console.log("Currency:", currency_iso);
 
-    if (!user_id || !company_id) {
-      console.log("Missing user/company context");
-
+    if (!user_id) {
       return res.status(401).json({
-        error: "Missing user or company context",
+        success: false,
+        code: "SESSION_EXPIRED",
+        error: "Unauthorized",
       });
     }
+
+    if (!company_id) {
+      return res.status(403).json({
+        success: false,
+        code: "COMPANY_CONTEXT_MISSING",
+        error: "No company is linked to this account",
+      });
+    }
+
 
     if (!currency_iso) {
       console.log("Missing currency");
@@ -803,10 +840,10 @@ async function updateProfile(req, res) {
 
     const result = await callOrds("/profile", {
       method: "PATCH",
-      body: JSON.stringify({
+      body: {
         ...profileUpdates,
         user_id,
-      }),
+      },
     });
 
     return res.json(result);
