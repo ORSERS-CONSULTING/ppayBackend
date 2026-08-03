@@ -839,7 +839,7 @@ async function updateProfile(req, res) {
     }
 
     const result = await callOrds("/profile", {
-      method: "PATCH",
+      method: "PUT",
       body: {
         ...profileUpdates,
         user_id,
