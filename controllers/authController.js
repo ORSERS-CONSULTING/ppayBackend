@@ -17,6 +17,59 @@ function hashToken(token) {
 
 const bcrypt = require("bcrypt");
 
+function decodeJwtPayloadWithoutVerify(token) {
+  try {
+    const payloadPart = token.split(".")[1];
+
+    if (!payloadPart) {
+      return null;
+    }
+
+    const normalized = payloadPart
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+    const padded = normalized.padEnd(
+      normalized.length +
+      ((4 - (normalized.length % 4)) % 4),
+      "=",
+    );
+
+    return JSON.parse(
+      Buffer.from(
+        padded,
+        "base64",
+      ).toString("utf8"),
+    );
+  } catch (error) {
+    return null;
+  }
+}
+
+function logAccessTokenTiming(label, token) {
+  const payload =
+    decodeJwtPayloadWithoutVerify(token);
+
+  if (!payload) {
+    console.log(`${label}: unable to decode token`);
+    return;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+
+  console.log(label, {
+    sub: payload.sub,
+    company_id: payload.company_id,
+    issued_at: payload.iat,
+    expires_at: payload.exp,
+    now,
+    remaining_seconds:
+      typeof payload.exp === "number"
+        ? payload.exp - now
+        : null,
+  });
+}
+
 async function login(req, res) {
   try {
     const { email, password, device_id } = req.body;
@@ -50,6 +103,11 @@ async function login(req, res) {
       company_id: result.out_company_id, // 🔥 comes from ORDS
       role: "user",
     });
+
+    logAccessTokenTiming(
+      "✅ [LOGIN] New access token",
+      access_token,
+    );
 
     const refresh_token = crypto.randomBytes(64).toString("hex");
     const token_hash = hashToken(refresh_token);
@@ -123,68 +181,160 @@ async function register(req, res) {
 =========================== */
 async function refresh(req, res) {
   try {
-    const { refresh_token, device_id } = req.body;
+    const {
+      refresh_token,
+      device_id,
+    } = req.body;
 
-    if (!refresh_token || !device_id) {
-      return res.status(400).json({ error: "Missing refresh data" });
-    }
+    console.log(
+      "========== REFRESH START ==========",
+    );
 
-    const token_hash = hashToken(refresh_token);
-
-    const result = await callOrds("/authTokens/validate", {
-      method: "POST",
-      body: JSON.stringify({
-        token_hash,
-        device_id,
-      }),
+    console.log({
+      has_refresh_token:
+        Boolean(refresh_token),
+      device_id,
     });
 
-
-    if (!result?.user_id) {
-      return res.status(401).json({ error: "Invalid refresh token" });
-    }
-
-    const userId = result.user_id;
-
-    const companyId =
-      result.company_id || result.out_company_id || result.outCompanyId;
-
-    if (!companyId) {
-      return res.status(401).json({
-        error: "Missing company context",
+    if (
+      !refresh_token ||
+      !device_id
+    ) {
+      return res.status(400).json({
+        error: "Missing refresh data",
       });
     }
 
-    await callOrds("/authTokens/revoke", {
-      method: "POST",
-      body: JSON.stringify({ token_hash, device_id }),
-    });
+    const token_hash =
+      hashToken(refresh_token);
 
-    const newRefreshToken = crypto.randomBytes(64).toString("hex");
-    const newHash = hashToken(newRefreshToken);
+    const result = await callOrds(
+      "/authTokens/validate",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          token_hash,
+          device_id,
+        }),
+      },
+    );
 
-    await callOrds("/authTokens/create", {
-      method: "POST",
-      body: JSON.stringify({
-        user_id: Number(userId),
-        token_hash: newHash,
-        device_id,
-        days: process.env.REFRESH_TOKEN_DAYS || 7,
-      }),
-    });
+    console.log(
+      "🔁 [REFRESH] ORDS validate result:",
+      {
+        user_id: result?.user_id,
+        company_id:
+          result?.company_id ||
+          result?.out_company_id ||
+          result?.outCompanyId,
+      },
+    );
 
-    const access_token = signAccessToken({
-      sub: String(userId),
-      company_id: companyId,
-      role: "user",
-    });
+    if (!result?.user_id) {
+      console.log(
+        "❌ [REFRESH] Invalid refresh token",
+      );
+
+      return res.status(401).json({
+        error: "Invalid refresh token",
+      });
+    }
+
+    const userId =
+      result.user_id;
+
+    const companyId =
+      result.company_id ||
+      result.out_company_id ||
+      result.outCompanyId;
+
+    if (!companyId) {
+      console.log(
+        "❌ [REFRESH] Missing company context",
+      );
+
+      return res.status(401).json({
+        error:
+          "Missing company context",
+      });
+    }
+
+    await callOrds(
+      "/authTokens/revoke",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          token_hash,
+          device_id,
+        }),
+      },
+    );
+
+    const newRefreshToken =
+      crypto
+        .randomBytes(64)
+        .toString("hex");
+
+    const newHash =
+      hashToken(newRefreshToken);
+
+    await callOrds(
+      "/authTokens/create",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          user_id:
+            Number(userId),
+          token_hash:
+            newHash,
+          device_id,
+          days:
+            process.env
+              .REFRESH_TOKEN_DAYS ||
+            7,
+        }),
+      },
+    );
+
+    const access_token =
+      signAccessToken({
+        sub: String(userId),
+        company_id:
+          Number(companyId),
+        role: "user",
+      });
+
+    logAccessTokenTiming(
+      "✅ [REFRESH] New access token",
+      access_token,
+    );
+
+    console.log(
+      "========== REFRESH COMPLETE ==========",
+    );
 
     return res.json({
       access_token,
-      refresh_token: newRefreshToken,
+      refresh_token:
+        newRefreshToken,
     });
   } catch (error) {
-    res.status(500).json({ error: "Refresh failed" });
+    console.error(
+      "❌ [REFRESH ERROR]",
+      {
+        name: error?.name,
+        message:
+          error?.message,
+        status:
+          error?.response?.status,
+        data:
+          error?.response?.data,
+      },
+    );
+
+    return res.status(500).json({
+      error: "Refresh failed",
+    });
   }
 }
 
