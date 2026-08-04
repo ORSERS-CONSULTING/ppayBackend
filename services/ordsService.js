@@ -49,9 +49,6 @@ async function callOrds(endpoint, options = {}) {
   }
 
  if (!response.ok) {
-  console.log("❌ ORDS STATUS:", response.status);
-  console.log("❌ ORDS RESPONSE:", data);
-
   const error = new Error(
     data?.error ||
     data?.message ||

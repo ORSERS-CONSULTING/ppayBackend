@@ -16,12 +16,6 @@ const ALLOWED_PROFILE_FIELDS = [
 
 async function createReceipt(req, res) {
   try {
-    console.log("========== CREATE RECEIPT req.user ==========");
-    console.log(req.user);
-
-    console.log("========== CREATE RECEIPT incoming body ==========");
-    console.log(req.body);
-
     const user_id = req.user?.id;
     const company_id = req.user?.company_id;
 
@@ -48,21 +42,13 @@ async function createReceipt(req, res) {
       company_id,
     };
 
-    console.log("========== CREATE RECEIPT body sent to ORDS ==========");
-    console.log(body);
-
     const result = await callOrds("/receipts", {
       method: "POST",
       body,
     });
 
-    console.log("========== CREATE RECEIPT ORDS RESULT ==========");
-    console.log(JSON.stringify(result, null, 2));
-
     res.json(result);
   } catch (error) {
-    console.error("createReceipt error:", error);
-
     res.status(500).json({
       error: "Failed to create receipt",
       detail: error.message,
@@ -134,23 +120,6 @@ async function listReceipts(req, res) {
         sanitizedParams,
       ).toString();
 
-    console.log(
-      "========== LIST RECEIPTS req.user ==========",
-    );
-    console.log(req.user);
-
-    console.log(
-      "========== LIST RECEIPTS PARAMS ==========",
-    );
-    console.log(sanitizedParams);
-
-    console.log(
-      "========== FINAL ORDS URL ==========",
-    );
-    console.log(
-      `/receipts?${queryString}`,
-    );
-
     const result = await callOrds(
       `/receipts?${queryString}`,
       {
@@ -158,20 +127,8 @@ async function listReceipts(req, res) {
       },
     );
 
-    console.log(
-      "========== LIST RECEIPTS ORDS RESULT ==========",
-    );
-    console.log(
-      JSON.stringify(result, null, 2),
-    );
-
     return res.json(result);
   } catch (error) {
-    console.error(
-      "listReceipts error:",
-      error,
-    );
-
     return res.status(500).json({
       success: false,
       error:
@@ -197,20 +154,12 @@ async function countReceipts(req, res) {
 
     const queryString = new URLSearchParams(queryParams).toString();
 
-    console.log("========== COUNT RECEIPTS PARAMS ==========");
-    console.log(queryParams);
-
-    console.log("========== FINAL ORDS URL ==========");
-    console.log(`/countReceipts?${queryString}`);
-
     const result = await callOrds(`/countReceipts?${queryString}`, {
       method: "GET",
     });
 
     res.json(result);
   } catch (error) {
-    console.error("countReceipts error:", error);
-
     res.status(500).json({
       error: "Failed to fetch receipt counts",
     });
@@ -218,9 +167,6 @@ async function countReceipts(req, res) {
 }
 async function getReceiptDetails(req, res) {
   try {
-    console.log("========== REQ.USER ==========");
-    console.log(req.user);
-
     // support both camelCase and snake_case
     const company_id = req.user?.company_id;
 
@@ -250,25 +196,14 @@ async function getReceiptDetails(req, res) {
       params.append("receipt_no", String(receipt_no));
     }
 
-    console.log("========== RECEIPT DETAILS PARAMS ==========");
-    console.log(params.toString());
-
     const ordsUrl = `/receiptDetails?${params.toString()}`;
-
-    console.log("========== ORDS URL ==========");
-    console.log(ordsUrl);
 
     const result = await callOrds(ordsUrl, {
       method: "GET",
     });
 
-    console.log("========== ORDS RESULT ==========");
-    console.log(JSON.stringify(result, null, 2));
-
     res.json(result);
   } catch (error) {
-    console.error("getReceiptDetails error:", error);
-
     res.status(500).json({
       error: "Failed to fetch receipt details",
     });
@@ -289,7 +224,6 @@ async function voidReceipt(req, res) {
 
     res.json(result);
   } catch (error) {
-    console.error("voidReceipt error:", error.message);
     res.status(500).json({ error: "Failed to void receipt" });
   }
 }
@@ -318,7 +252,6 @@ async function getPublicReceipt(req, res) {
 
     res.json(receipt);
   } catch (error) {
-    console.error("getPublicReceipt error:", error.message);
     res.status(500).json({ error: "Failed to fetch receipt" });
   }
 }
@@ -326,26 +259,17 @@ async function uploadLogo(req, res) {
   try {
     const company_id = req.user?.company_id;
 
-    console.log("uploadLogo → company:", company_id);
 
     if (!company_id) {
       return res.status(401).json({ error: "Missing company context" });
     }
 
     if (!req.file) {
-      console.log("uploadLogo → no file received");
       return res.status(400).json({ error: "No image uploaded" });
     }
 
-    console.log("uploadLogo → file:", {
-      type: req.file.mimetype,
-      size: req.file.size,
-    });
-
     const mimeType = req.file.mimetype;
     const buffer = req.file.buffer;
-
-    console.log("uploadLogo → sending to ORDS");
 
     const result = await callOrds("/uploadLogo", {
       method: "POST",
@@ -358,11 +282,8 @@ async function uploadLogo(req, res) {
       body: buffer,
     });
 
-    console.log("uploadLogo → ORDS success");
-
     res.json(result);
   } catch (error) {
-    console.error("uploadLogo error:", error.message);
     res.status(500).json({ error: "Failed to upload logo" });
   }
 }
@@ -374,7 +295,6 @@ async function getLogo(req, res) {
       return res.status(400).json({ error: "Missing company id" });
     }
 
-    console.log("getLogo → company:", company_id);
 
     const token = await getOrdsAccessToken();
     const url = `${process.env.ORDS_BASE_URL}/getLogo?company_id=${company_id}`;
@@ -383,7 +303,6 @@ async function getLogo(req, res) {
     });
 
     if (!response.ok) {
-      console.log("getLogo → ORDS failed:", response.status);
       return res.status(response.status).end();
     }
 
@@ -393,7 +312,6 @@ async function getLogo(req, res) {
     res.setHeader("Content-Type", contentType);
     res.send(Buffer.from(buffer));
   } catch (error) {
-    console.error("getLogo error:", error.message);
     res.status(500).json({ error: "Failed to fetch logo" });
   }
 }
@@ -414,11 +332,7 @@ async function uploadReceiptPdf(req, res) {
     if (file.mimetype !== "application/pdf") {
       return res.status(400).json({ error: "Only PDF files are allowed" });
     }
-    console.log("uploadReceiptPdf → received file:", {
-      filename: file.originalname,
-      size: file.size,
-      mimetype: file.mimetype,
-    });
+
     const result = await callOrds("/uploadReceiptPdf", {
       method: "POST",
       headers: {
@@ -431,7 +345,7 @@ async function uploadReceiptPdf(req, res) {
       },
       body: file.buffer,
     });
-    console.log("uploadReceiptPdf → ORDS response:", result);
+
     const responseMessage =
       result?.response_message || result?.items?.[0]?.response_message;
 
@@ -445,7 +359,6 @@ async function uploadReceiptPdf(req, res) {
       message: "Receipt PDF stored successfully",
     });
   } catch (error) {
-    console.error("uploadReceiptPdf error:", error);
     return res.status(500).json({
       error: "Failed to upload receipt PDF",
     });
@@ -483,7 +396,6 @@ async function sendReceiptEmailFromDb(req, res) {
       message: "Receipt email sent successfully",
     });
   } catch (error) {
-    console.error("sendReceiptEmailFromDb error:", error);
     return res.status(500).json({
       error: "Failed to send receipt email",
     });
@@ -513,7 +425,6 @@ async function listProducts(req, res) {
 
     res.json(result);
   } catch (error) {
-    console.error("listProducts error:", error.message);
     res.status(500).json({ error: "Failed to fetch products" });
   }
 }
@@ -541,8 +452,6 @@ async function createProduct(req, res) {
 
     res.json(result);
   } catch (error) {
-    console.error("createProduct error:", error.message);
-
     if (error.response) {
       return res.status(error.response.status).json(
         error.response.data
@@ -584,21 +493,13 @@ async function updateProduct(req, res) {
       company_id,
     };
 
-    console.log("========== UPDATE PRODUCT body sent to ORDS ==========");
-    console.log(body);
-
     const result = await callOrds("/products", {
       method: "PUT",
       body,
     });
 
-    console.log("========== UPDATE PRODUCT ORDS RESULT ==========");
-    console.log(JSON.stringify(result, null, 2));
-
     res.json(result);
   } catch (error) {
-    console.error("updateProduct error:", error);
-
     res.status(500).json({
       error: "Failed to update product",
       detail: error.message,
@@ -608,12 +509,6 @@ async function updateProduct(req, res) {
 
 async function deactivateProduct(req, res) {
   try {
-    console.log("========== DEACTIVATE PRODUCT req.user ==========");
-    console.log(req.user);
-
-    console.log("========== DEACTIVATE PRODUCT params ==========");
-    console.log(req.params);
-
     const user_id = req.user?.id;
     const company_id = req.user?.company_id;
 
@@ -640,20 +535,13 @@ async function deactivateProduct(req, res) {
       company_id,
     };
 
-    console.log("========== DEACTIVATE PRODUCT body sent to ORDS ==========");
-    console.log(body);
-
     const result = await callOrds("/products", {
       method: "DELETE",
       body,
     });
 
-    console.log("========== DEACTIVATE PRODUCT ORDS RESULT ==========");
-    console.log(JSON.stringify(result, null, 2));
-
     res.json(result);
   } catch (error) {
-    console.error("deactivateProduct error:", error);
 
     res.status(500).json({
       error: "Failed to deactivate product",
@@ -679,16 +567,12 @@ function getValue(row, keys) {
 
 async function importProducts(req, res) {
   try {
-    console.log("========== IMPORT PRODUCTS START ==========");
 
     const user_id = req.user?.id;
     const company_id = req.user?.company_id;
     const file = req.file;
     const currency_iso = req.body.currency_iso;
 
-    console.log("User:", user_id);
-    console.log("Company:", company_id);
-    console.log("Currency:", currency_iso);
 
     if (!user_id) {
       return res.status(401).json({
@@ -708,38 +592,23 @@ async function importProducts(req, res) {
 
 
     if (!currency_iso) {
-      console.log("Missing currency");
-
       return res.status(400).json({
         error: "Missing currency",
       });
     }
 
     if (!file) {
-      console.log("No file received");
-
       return res.status(400).json({
         error: "Excel file is required",
       });
     }
-
-    console.log("File received:", {
-      originalname: file.originalname,
-      mimetype: file.mimetype,
-      size: file.size,
-    });
-
     const workbook = XLSX.read(file.buffer, {
       type: "buffer",
     });
 
-    console.log("Workbook sheets:", workbook.SheetNames);
-
     const firstSheetName = workbook.SheetNames[0];
 
     if (!firstSheetName) {
-      console.log("No sheets found in workbook");
-
       return res.status(400).json({
         error: "Excel file contains no sheets",
       });
@@ -751,22 +620,11 @@ async function importProducts(req, res) {
       defval: "",
     });
 
-    console.log("Rows found:", rows.length);
-
-    console.log(
-      "First 5 rows:",
-      JSON.stringify(rows.slice(0, 5), null, 2)
-    );
-
     let imported = 0;
     const errors = [];
 
     for (const [index, row] of rows.entries()) {
       try {
-        console.log(`========== ROW ${index + 2} ==========`);
-
-        console.log("Raw row:", JSON.stringify(row, null, 2));
-
         const name = getValue(row, [
           "Product Name",
           "product name",
@@ -796,16 +654,7 @@ async function importProducts(req, res) {
 
         const price = Number(rawPrice);
 
-        console.log("Extracted values:", {
-          name,
-          description,
-          rawPrice,
-          price,
-        });
-
         if (!name) {
-          console.log(`Row ${index + 2}: Missing product name`);
-
           errors.push({
             row: index + 2,
             error: "Missing product name",
@@ -815,8 +664,6 @@ async function importProducts(req, res) {
         }
 
         if (!Number.isFinite(price) || price <= 0) {
-          console.log(`Row ${index + 2}: Invalid price`);
-
           errors.push({
             row: index + 2,
             error: "Invalid price",
@@ -834,25 +681,12 @@ async function importProducts(req, res) {
           currency_iso,
         };
 
-        console.log(
-          "Sending to ORDS:",
-          JSON.stringify(ordsPayload, null, 2)
-        );
-
         const ordsResult = await callOrds("/products", {
           method: "POST",
           body: ordsPayload,
         });
-
-        console.log(
-          "ORDS Response:",
-          JSON.stringify(ordsResult, null, 2)
-        );
-
         imported++;
       } catch (err) {
-        console.error(`Row ${index + 2} failed:`, err);
-
         errors.push({
           row: index + 2,
           error: err.message,
@@ -860,21 +694,12 @@ async function importProducts(req, res) {
       }
     }
 
-    console.log("========== IMPORT COMPLETE ==========");
-    console.log({
-      imported,
-      failed: errors.length,
-      errors,
-    });
-
     return res.json({
       imported,
       failed: errors.length,
       errors,
     });
   } catch (error) {
-    console.error("importProducts error:", error);
-
     return res.status(500).json({
       error: "Failed to import products",
       detail: error.message,
@@ -919,23 +744,10 @@ async function updateProfile(req, res) {
       user_id,
     };
 
-    console.log("========== PROFILE UPDATE ==========");
-    console.log({
-      user_id,
-      receivedFields: Object.keys(req.body),
-      allowedFields: Object.keys(profileUpdates),
-      ordsBody,
-    });
-
     const result = await callOrds("/profile", {
       method: "PUT",
       body: ordsBody,
     });
-
-    console.log(
-      "PROFILE UPDATE ORDS RESULT:",
-      JSON.stringify(result, null, 2),
-    );
 
     return res.json(result);
   } catch (error) {
@@ -944,12 +756,6 @@ async function updateProfile(req, res) {
 
     const ordsData =
       error.response?.data || null;
-
-    console.error("updateProfile ORDS error:", {
-      message: error.message,
-      status,
-      ordsData,
-    });
 
     return res.status(
       status >= 400 && status < 600

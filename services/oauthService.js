@@ -21,8 +21,6 @@ async function getOrdsAccessToken() {
   const text = await response.text();
 
   if (!response.ok) {
-    console.log("TOKEN STATUS:", response.status);
-    console.log("TOKEN BODY:", text);
     throw new Error(`TOKEN ${response.status}: ${text}`);
   }
 
