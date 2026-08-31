@@ -707,6 +707,54 @@ async function importProducts(req, res) {
   }
 }
 
+async function getProfile(req, res) {
+  try {
+    /*
+     * This ID comes from the verified application JWT.
+     * Never accept user_id from req.query or req.body.
+     */
+    const user_id = req.user?.id;
+
+    if (!user_id) {
+      return res.status(401).json({
+        success: false,
+        code: "SESSION_EXPIRED",
+        error: "Unauthorized",
+      });
+    }
+
+    const result = await callOrds("/profile", {
+      method: "GET",
+      query: {
+        user_id: String(user_id),
+      },
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    const status =
+      error.response?.status || 500;
+
+    const ordsData =
+      error.response?.data || null;
+
+    return res
+      .status(
+        status >= 400 && status < 600
+          ? status
+          : 500,
+      )
+      .json({
+        success: false,
+        error:
+          ordsData?.message ||
+          ordsData?.error ||
+          ordsData?.raw ||
+          "Failed to retrieve profile",
+      });
+  }
+}
+
 async function updateProfile(req, res) {
   try {
     const user_id = req.user?.id;
@@ -788,5 +836,6 @@ module.exports = {
   updateProduct,
   deactivateProduct,
   importProducts,
+  getProfile,
   updateProfile,
 };

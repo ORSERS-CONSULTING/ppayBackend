@@ -75,6 +75,13 @@ router.get(
  * This route only needs the authenticated user.
  * Your ORDS profile endpoint resolves the company using user_id.
  */
+
+router.get(
+  "/profile",
+  authUser,
+  receiptController.getProfile,
+);
+
 router.patch(
   "/profile",
   authUser,
